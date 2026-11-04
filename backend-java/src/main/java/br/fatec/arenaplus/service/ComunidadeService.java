@@ -1,0 +1,96 @@
+package br.fatec.arenaplus.service;
+
+import br.fatec.arenaplus.dto.ComunidadeRequest;
+import br.fatec.arenaplus.dto.ComunidadeResponse;
+import br.fatec.arenaplus.dto.ComunidadeUpdateRequest;
+import br.fatec.arenaplus.dto.PaginaResponse;
+import br.fatec.arenaplus.entity.Comunidade;
+import br.fatec.arenaplus.entity.MembroComunidade;
+import br.fatec.arenaplus.entity.PapelMembro;
+import br.fatec.arenaplus.entity.Usuario;
+import br.fatec.arenaplus.exception.RecursoNaoEncontradoException;
+import br.fatec.arenaplus.repository.Busca;
+import br.fatec.arenaplus.repository.ComunidadeRepository;
+import br.fatec.arenaplus.repository.MembroComunidadeRepository;
+import br.fatec.arenaplus.repository.PublicacaoRepository;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class ComunidadeService {
+
+    private final ComunidadeRepository comunidades;
+    private final MembroComunidadeRepository membros;
+    private final PublicacaoRepository publicacoes;
+    private final UsuarioService usuarioService;
+
+    public ComunidadeService(ComunidadeRepository comunidades, MembroComunidadeRepository membros,
+                             PublicacaoRepository publicacoes, UsuarioService usuarioService) {
+        this.comunidades = comunidades;
+        this.membros = membros;
+        this.publicacoes = publicacoes;
+        this.usuarioService = usuarioService;
+    }
+
+    /** Cria a comunidade e registra o criador como MODERADOR. */
+    public ComunidadeResponse criar(ComunidadeRequest req) {
+        Usuario criador = usuarioService.obterAtivo(req.criadorId());
+        Comunidade c = new Comunidade();
+        c.setNome(req.nome().trim());
+        c.setDescricao(req.descricao().trim());
+        c.setEsporte(req.esporte().trim());
+        c.setImagemUrl(Textos.limpar(req.imagemUrl()));
+        c.setCriador(criador);
+        comunidades.save(c);
+
+        MembroComunidade m = new MembroComunidade();
+        m.setUsuario(criador);
+        m.setComunidade(c);
+        m.setPapel(PapelMembro.MODERADOR);
+        membros.save(m);
+        return toResponse(c);
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaResponse<ComunidadeResponse> listar(String busca, String esporte, Pageable pageable) {
+        return PaginaResponse.of(comunidades.buscar(Busca.normalizar(busca), Busca.normalizar(esporte), pageable), this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public ComunidadeResponse buscar(Long id) {
+        return toResponse(obter(id));
+    }
+
+    public ComunidadeResponse atualizar(Long id, ComunidadeUpdateRequest req) {
+        Comunidade c = obter(id);
+        c.setNome(req.nome().trim());
+        c.setDescricao(req.descricao().trim());
+        c.setEsporte(req.esporte().trim());
+        c.setImagemUrl(Textos.limpar(req.imagemUrl()));
+        return toResponse(c);
+    }
+
+    /**
+     * Remove a comunidade e os vínculos de membros.
+     * As publicações são preservadas e passam a aparecer apenas no feed geral (comunidadeId = null).
+     */
+    public void excluir(Long id) {
+        Comunidade c = obter(id);
+        publicacoes.desvincularDaComunidade(id);
+        membros.deleteByComunidadeId(id);
+        comunidades.delete(c);
+    }
+
+    @Transactional(readOnly = true)
+    public Comunidade obter(Long id) {
+        return comunidades.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Comunidade", id));
+    }
+
+    ComunidadeResponse toResponse(Comunidade c) {
+        return new ComunidadeResponse(c.getId(), c.getNome(), c.getDescricao(), c.getEsporte(), c.getImagemUrl(),
+                c.getCriador().getId(), c.getCriador().getNome(), c.getDataCriacao(),
+                membros.countByComunidadeId(c.getId()), publicacoes.countByComunidadeId(c.getId()));
+    }
+}

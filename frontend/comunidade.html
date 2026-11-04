@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena+ | Comunidade</title>
+    <link rel="icon" href="img/logo-arena.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<main class="pagina">
+    <section class="card banner-comunidade" id="banner" aria-live="polite"></section>
+    <div class="grade-2">
+        <section class="coluna">
+            <form class="card compor" id="form-publicar" hidden novalidate>
+                <label for="texto-publicacao" class="sr-only">Publicar na comunidade</label>
+                <textarea id="texto-publicacao" name="texto" maxlength="2000" rows="2" placeholder="Compartilhe algo com a comunidade..." required></textarea>
+                <div class="compor-rodape">
+                    <input name="midiaUrl" maxlength="500" placeholder="📷 URL de imagem/vídeo (opcional)" aria-label="URL de imagem ou vídeo (opcional)"
+                           style="flex:1;padding:.5rem .7rem;border:1.5px solid var(--borda);border-radius:var(--raio-sm);font-size:.88rem">
+                    <button class="btn btn-primario" data-carregando="Publicando"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Publicar</button>
+                </div>
+            </form>
+            <div id="lista-posts" class="coluna" aria-live="polite"></div>
+            <div class="mais"><button class="btn btn-secundario" id="btn-mais" hidden data-carregando="Carregando">Carregar mais</button></div>
+        </section>
+        <aside class="lateral">
+            <section class="card card-pad">
+                <h2 class="card-titulo"><i class="fa-solid fa-user-group" aria-hidden="true"></i> Membros <span id="n-membros" class="chip"></span></h2>
+                <div id="membros"></div>
+            </section>
+        </aside>
+    </div>
+</main>
+
+<dialog class="dialogo" id="dlg-editar">
+    <form id="form-editar" novalidate>
+        <h3>Editar comunidade</h3>
+        <label class="campo"><span>Nome *</span><input name="nome" required maxlength="100"></label>
+        <label class="campo"><span>Esporte *</span><input name="esporte" required maxlength="60"></label>
+        <label class="campo"><span>Descrição *</span><textarea name="descricao" rows="3" required maxlength="1000"></textarea></label>
+        <label class="campo"><span>URL da imagem de capa</span><input name="imagemUrl" maxlength="500"></label>
+        <div class="dialogo-acoes" style="justify-content:space-between">
+            <button type="button" class="btn btn-secundario btn-pequeno" id="btn-excluir" style="color:var(--perigo)">Excluir comunidade</button>
+            <span style="display:flex;gap:.5rem">
+                <button type="button" class="btn btn-secundario" id="btn-cancelar">Cancelar</button>
+                <button class="btn btn-primario" data-carregando="Salvando">Salvar</button>
+            </span>
+        </div>
+    </form>
+</dialog>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/session.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/components.js"></script>
+<script src="js/pages/comunidade.js"></script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena+ | Perfil</title>
+    <link rel="icon" href="img/logo-arena.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<main class="pagina">
+    <section class="card perfil-cabecalho" id="cabecalho" aria-live="polite"></section>
+    <div class="grade-2">
+        <section class="coluna">
+            <div class="abas" role="tablist" aria-label="Conteúdo do perfil">
+                <button class="aba" role="tab" aria-selected="true" data-aba="posts">Publicações</button>
+                <button class="aba" role="tab" aria-selected="false" data-aba="seguidores">Seguidores</button>
+                <button class="aba" role="tab" aria-selected="false" data-aba="seguindo">Seguindo</button>
+            </div>
+            <div id="conteudo-aba" class="coluna" role="tabpanel"></div>
+            <div class="mais"><button class="btn btn-secundario" id="btn-mais" hidden data-carregando="Carregando">Carregar mais</button></div>
+        </section>
+        <aside class="lateral">
+            <section class="card card-pad">
+                <h2 class="card-titulo"><i class="fa-solid fa-people-group" aria-hidden="true"></i> Comunidades</h2>
+                <ul class="lista-links" id="comunidades-usuario"></ul>
+            </section>
+        </aside>
+    </div>
+</main>
+
+<dialog class="dialogo" id="dlg-editar">
+    <form id="form-editar" novalidate>
+        <h3>Editar perfil</h3>
+        <label class="campo"><span>Nome *</span><input name="nome" required maxlength="100"></label>
+        <label class="campo"><span>Biografia</span><textarea name="biografia" rows="3" maxlength="500"></textarea></label>
+        <div class="linha-campos">
+            <label class="campo"><span>Cidade</span><input name="cidade" maxlength="100"></label>
+            <label class="campo"><span>Esporte principal</span><input name="esportePrincipal" maxlength="60"></label>
+        </div>
+        <label class="campo"><span>URL da foto de perfil</span><input name="fotoPerfilUrl" maxlength="500" placeholder="img/futebol-jogador.jpeg ou https://..."></label>
+        <div class="dialogo-acoes" style="justify-content:space-between">
+            <span style="display:flex;gap:.5rem;flex-wrap:wrap">
+                <button type="button" class="btn btn-secundario btn-pequeno" id="btn-abrir-senha"><i class="fa-solid fa-key" aria-hidden="true"></i> Alterar senha</button>
+                <button type="button" class="btn btn-secundario btn-pequeno" id="btn-desativar" style="color:var(--perigo)">Desativar conta</button>
+            </span>
+            <span style="display:flex;gap:.5rem">
+                <button type="button" class="btn btn-secundario" id="btn-cancelar-edicao">Cancelar</button>
+                <button class="btn btn-primario" data-carregando="Salvando">Salvar</button>
+            </span>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="dialogo" id="dlg-senha">
+    <form id="form-senha" novalidate>
+        <h3>Alterar senha</h3>
+        <label class="campo"><span>Senha atual</span><input type="password" name="senhaAtual" autocomplete="current-password" required></label>
+        <label class="campo"><span>Nova senha (mín. 6 caracteres)</span><input type="password" name="novaSenha" autocomplete="new-password" required minlength="6" maxlength="72"></label>
+        <label class="campo"><span>Confirme a nova senha</span><input type="password" name="confirmacao" autocomplete="new-password" required></label>
+        <div class="dialogo-acoes">
+            <button type="button" class="btn btn-secundario" id="btn-cancelar-senha">Cancelar</button>
+            <button class="btn btn-primario" data-carregando="Salvando">Alterar senha</button>
+        </div>
+    </form>
+</dialog>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/session.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/components.js"></script>
+<script src="js/pages/perfil.js"></script>
+</body>
+</html>

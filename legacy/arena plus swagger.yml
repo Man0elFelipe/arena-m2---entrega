@@ -1,0 +1,599 @@
+openapi: 3.0.3
+info:
+  title: Arena+ API
+  description: |
+    API REST da plataforma Arena+ — rede social esportiva.
+    
+    **Autenticação:** Sessão PHP (cookie `PHPSESSID`). Faça login primeiro em `POST /login` e use o cookie retornado nas demais requisições.
+    
+    **Base URL:** `http://localhost:3000` (Node/Express) ou `http://localhost:8888` (MAMP/PHP)
+  version: "1.0.0"
+  contact:
+    name: Arena+
+
+servers:
+  - url: http://localhost:3000
+    description: Servidor Node.js (Express)
+  - url: http://localhost:8888
+    description: MAMP (PHP)
+
+tags:
+  - name: Autenticação
+    description: Login, cadastro e logout
+  - name: Usuário
+    description: Dados do perfil logado
+  - name: Posts
+    description: Feed, criar post, curtir e comentar
+  - name: Seguir
+    description: Seguir, deixar de seguir e contagens
+  - name: Comunidades
+    description: Entrar em comunidades e participar de desafios
+  - name: Coach
+    description: Arena Coach — IA com RAG esportivo
+
+# ──────────────────────────────────────────────────────────────
+paths:
+
+# ── AUTENTICAÇÃO ──────────────────────────────────────────────
+
+  /login:
+    post:
+      tags: [Autenticação]
+      summary: Login ou cadastro
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              oneOf:
+                - title: Login
+                  required: [acao, email, senha]
+                  properties:
+                    acao:
+                      type: string
+                      enum: [login]
+                    email:
+                      type: string
+                      format: email
+                      example: joao@email.com
+                    senha:
+                      type: string
+                      minLength: 6
+                      example: minhasenha
+                - title: Cadastro
+                  required: [acao, nome, username, email, senha]
+                  properties:
+                    acao:
+                      type: string
+                      enum: [cadastro]
+                    nome:
+                      type: string
+                      example: João Silva
+                    username:
+                      type: string
+                      example: joaosilva
+                    email:
+                      type: string
+                      format: email
+                    senha:
+                      type: string
+                      minLength: 6
+                    bio:
+                      type: string
+                    esporte_favorito:
+                      type: string
+                      example: Futebol
+                    objetivo:
+                      type: string
+                      example: Hipertrofia
+                    nivel:
+                      type: string
+                      example: Intermediário
+      responses:
+        "302":
+          description: Redireciona para /feed (login) ou /setup-profile (cadastro)
+        "200":
+          description: Página com mensagem de erro (HTML)
+
+  /logout:
+    get:
+      tags: [Autenticação]
+      summary: Encerra a sessão e redireciona para /login
+      responses:
+        "302":
+          description: Redireciona para /login
+
+# ── USUÁRIO ───────────────────────────────────────────────────
+
+  /api/usuario:
+    get:
+      tags: [Usuário]
+      summary: Retorna dados do usuário logado
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Dados do usuário
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/UsuarioOk'
+                  - $ref: '#/components/schemas/Erro'
+              examples:
+                sucesso:
+                  value:
+                    ok: true
+                    usuario:
+                      nome: João Silva
+                      username: "@joaosilva"
+                      bio: Jogador de futebol amador
+                      foto: upload/foto_12.jpg
+
+  /salvar_perfil.php:
+    post:
+      tags: [Usuário]
+      summary: Atualiza nome, username, bio e foto do perfil
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              required: [nome, username]
+              properties:
+                nome:
+                  type: string
+                  example: João Silva
+                username:
+                  type: string
+                  example: joaosilva
+                bio:
+                  type: string
+                  example: Apaixonado por esportes
+                foto:
+                  type: string
+                  format: binary
+                  description: Imagem JPG, PNG, WEBP ou GIF (opcional)
+      responses:
+        "200":
+          description: Perfil atualizado
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - properties:
+                      ok:
+                        type: boolean
+                        example: true
+                      nome:
+                        type: string
+                      username:
+                        type: string
+                      foto:
+                        type: string
+                  - $ref: '#/components/schemas/Erro'
+
+# ── POSTS ─────────────────────────────────────────────────────
+
+  /api_posts.php:
+    get:
+      tags: [Posts]
+      summary: Listar posts do feed ou comentários de um post
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: acao
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [feed, comentarios]
+        - name: pagina
+          in: query
+          description: Página do feed (padrão 1, 10 posts por página)
+          schema:
+            type: integer
+            example: 1
+        - name: post_id
+          in: query
+          description: Obrigatório quando acao=comentarios
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista de posts ou comentários
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - title: Feed
+                    properties:
+                      ok:
+                        type: boolean
+                      posts:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Post'
+                  - title: Comentários
+                    properties:
+                      ok:
+                        type: boolean
+                      comentarios:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Comentario'
+                  - $ref: '#/components/schemas/Erro'
+              examples:
+                feed:
+                  value:
+                    ok: true
+                    posts:
+                      - id: 42
+                        texto: "Treino concluído! 💪"
+                        midia_url: upload/post_5_1714000000.jpg
+                        midia_tipo: image
+                        nome: João Silva
+                        username: joaosilva
+                        foto_perfil: upload/foto_5.jpg
+                        total_curtidas: 8
+                        curtido_por_mim: 0
+                        total_comentarios: 3
+                        criado_em: "2025-05-04 21:00:00"
+
+    post:
+      tags: [Posts]
+      summary: Criar post, curtir/descurtir ou comentar
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              required: [acao]
+              properties:
+                acao:
+                  type: string
+                  enum: [criar, curtir, comentar]
+                texto:
+                  type: string
+                  description: Texto do post ou comentário
+                midia:
+                  type: string
+                  format: binary
+                  description: Arquivo de mídia (acao=criar). JPG, PNG, WEBP, GIF, MP4, MOV, WEBM
+                post_id:
+                  type: integer
+                  description: ID do post (acao=curtir ou comentar)
+      responses:
+        "200":
+          description: Resultado da ação
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - title: Post criado
+                    properties:
+                      ok:
+                        type: boolean
+                      post:
+                        $ref: '#/components/schemas/Post'
+                  - title: Curtida
+                    properties:
+                      ok:
+                        type: boolean
+                      acao:
+                        type: string
+                        enum: [curtido, descurtido]
+                      total:
+                        type: integer
+                  - title: Comentário
+                    properties:
+                      ok:
+                        type: boolean
+                      comentario:
+                        $ref: '#/components/schemas/Comentario'
+                  - $ref: '#/components/schemas/Erro'
+              examples:
+                curtir:
+                  value:
+                    ok: true
+                    acao: curtido
+                    total: 9
+                comentar:
+                  value:
+                    ok: true
+                    comentario:
+                      texto: Parabéns pelo treino!
+                      nome: Maria Oliveira
+                      username: "@mariaoliveira"
+                      criado_em: "2025-05-04 22:00:00"
+
+# ── SEGUIR ────────────────────────────────────────────────────
+
+  /api_seguir.php:
+    get:
+      tags: [Seguir]
+      summary: Contagens do perfil ou sugestões de quem seguir
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: acao
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [contagens, sugestoes]
+        - name: usuario_id
+          in: query
+          description: ID do usuário alvo (opcional, padrão = usuário logado)
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Contagens ou sugestões
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - title: Contagens
+                    properties:
+                      ok:
+                        type: boolean
+                      seguidores:
+                        type: integer
+                      seguindo:
+                        type: integer
+                      posts:
+                        type: integer
+                      eu_sigo:
+                        type: boolean
+                      e_meu_perfil:
+                        type: boolean
+                  - title: Sugestões
+                    properties:
+                      ok:
+                        type: boolean
+                      sugestoes:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UsuarioSimples'
+              examples:
+                contagens:
+                  value:
+                    ok: true
+                    seguidores: 120
+                    seguindo: 45
+                    posts: 30
+                    eu_sigo: false
+                    e_meu_perfil: false
+
+    post:
+      tags: [Seguir]
+      summary: Seguir ou deixar de seguir um usuário
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required: [acao, usuario_id]
+              properties:
+                acao:
+                  type: string
+                  enum: [toggle]
+                usuario_id:
+                  type: integer
+                  description: ID do usuário a seguir/deixar de seguir
+      responses:
+        "200":
+          description: Resultado
+          content:
+            application/json:
+              schema:
+                properties:
+                  ok:
+                    type: boolean
+                  acao:
+                    type: string
+                    enum: [seguindo, deixou_de_seguir]
+                  total_seguidores:
+                    type: integer
+              example:
+                ok: true
+                acao: seguindo
+                total_seguidores: 121
+
+# ── COMUNIDADES ───────────────────────────────────────────────
+
+  /api_comunidades.php:
+    post:
+      tags: [Comunidades]
+      summary: Entrar em comunidade ou participar de desafio
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required: [acao]
+              properties:
+                acao:
+                  type: string
+                  enum: [entrar, desafio]
+                nome:
+                  type: string
+                  description: Nome da comunidade (acao=entrar)
+                  example: Gym Rats
+                desafio_id:
+                  type: integer
+                  description: ID do desafio (acao=desafio)
+      responses:
+        "200":
+          description: Resultado
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - title: Entrar
+                    properties:
+                      ok:
+                        type: boolean
+                      membros:
+                        type: integer
+                  - title: Desafio
+                    properties:
+                      ok:
+                        type: boolean
+                  - $ref: '#/components/schemas/Erro'
+              examples:
+                entrar:
+                  value:
+                    ok: true
+                    membros: 34
+
+# ── COACH ─────────────────────────────────────────────────────
+
+  /api_arena_coach.php:
+    post:
+      tags: [Coach]
+      summary: Conversar com o Arena Coach (IA + RAG esportivo)
+      description: |
+        Envia uma pergunta ao Arena Coach. O sistema busca contexto relevante na base RAG (`arena_coach_base`), recupera dados do perfil do usuário e das comunidades, e envia tudo para a OpenAI GPT-4o-mini.
+        
+        Suporta envio de imagem junto à pergunta.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              required: [acao, pergunta]
+              properties:
+                acao:
+                  type: string
+                  enum: [chat]
+                pergunta:
+                  type: string
+                  example: "Qual o melhor treino pré-jogo de futebol?"
+                imagem:
+                  type: string
+                  format: binary
+                  description: Imagem opcional (JPG, PNG, WEBP, GIF — max 5 MB)
+      responses:
+        "200":
+          description: Resposta do coach
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - properties:
+                      ok:
+                        type: boolean
+                      resposta:
+                        type: string
+                        description: Texto gerado pela IA
+                  - $ref: '#/components/schemas/Erro'
+              example:
+                ok: true
+                resposta: "Para um jogo de futebol, prefira carboidratos de fácil digestão 60–90 min antes, como banana com aveia..."
+
+# ──────────────────────────────────────────────────────────────
+components:
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: PHPSESSID
+
+  schemas:
+
+    Erro:
+      type: object
+      properties:
+        erro:
+          type: string
+          example: Não autenticado.
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+        texto:
+          type: string
+        midia_url:
+          type: string
+          nullable: true
+        midia_tipo:
+          type: string
+          enum: [image, video]
+          nullable: true
+        nome:
+          type: string
+        username:
+          type: string
+        foto_perfil:
+          type: string
+          nullable: true
+        total_curtidas:
+          type: integer
+        curtido_por_mim:
+          type: integer
+          enum: [0, 1]
+        total_comentarios:
+          type: integer
+        criado_em:
+          type: string
+          format: date-time
+
+    Comentario:
+      type: object
+      properties:
+        texto:
+          type: string
+        nome:
+          type: string
+        username:
+          type: string
+        criado_em:
+          type: string
+          format: date-time
+
+    UsuarioOk:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        usuario:
+          type: object
+          properties:
+            nome:
+              type: string
+            username:
+              type: string
+            bio:
+              type: string
+            foto:
+              type: string
+
+    UsuarioSimples:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        username:
+          type: string
+        foto_perfil:
+          type: string
+          nullable: true
+        total_seguidores:
+          type: integer

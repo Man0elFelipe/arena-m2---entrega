@@ -1,0 +1,6 @@
+DirectoryIndex index.php login.php arena+.php index.html
+Options -Indexes
+
+<FilesMatch "^\.env">
+    Require all denied
+</FilesMatch>

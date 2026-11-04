@@ -1,0 +1,323 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Arena+ API",
+    "version": "1.0.0",
+    "description": "Documentacao das rotas Node/Express do Arena+. O projeto usa sessao via cookie; faca login antes de testar endpoints protegidos."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor local Node"
+    }
+  ],
+  "tags": [
+    { "name": "Auth" },
+    { "name": "Usuario" },
+    { "name": "Posts" },
+    { "name": "Comunidades" },
+    { "name": "Social" },
+    { "name": "Coach" },
+    { "name": "Admin" },
+    { "name": "Busca" },
+    { "name": "Notificacoes" }
+  ],
+  "paths": {
+    "/login": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Exibe a pagina de login",
+        "responses": { "200": { "description": "HTML de login" } }
+      },
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login ou cadastro",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "acao": { "type": "string", "enum": ["login", "cadastro"] },
+                  "email": { "type": "string" },
+                  "senha": { "type": "string" },
+                  "nome": { "type": "string" },
+                  "username": { "type": "string" }
+                },
+                "required": ["acao", "email", "senha"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": { "description": "Redireciona para feed ou admin" },
+          "200": { "description": "HTML com mensagem de erro" }
+        }
+      }
+    },
+    "/logout": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Encerra a sessao",
+        "responses": { "302": { "description": "Redireciona para /login" } }
+      }
+    },
+    "/api/usuario": {
+      "get": {
+        "tags": ["Usuario"],
+        "summary": "Dados do usuario logado",
+        "responses": {
+          "200": {
+            "description": "Usuario atual",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UsuarioResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Usuario"],
+        "summary": "Atualiza perfil do usuario",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nome": { "type": "string" },
+                  "username": { "type": "string" },
+                  "bio": { "type": "string" },
+                  "cidade": { "type": "string" },
+                  "esporte_favorito": { "type": "string" },
+                  "posicao_modalidade": { "type": "string" },
+                  "foto": { "type": "string", "format": "binary" }
+                },
+                "required": ["nome", "username"]
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Perfil atualizado" } }
+      }
+    },
+    "/api/usuario/communities": {
+      "get": {
+        "tags": ["Usuario", "Comunidades"],
+        "summary": "Comunidades do usuario logado",
+        "responses": { "200": { "description": "Lista de comunidades do perfil" } }
+      }
+    },
+    "/api/posts": {
+      "get": {
+        "tags": ["Posts"],
+        "summary": "Lista feed ou comentarios conforme acao",
+        "parameters": [
+          { "name": "acao", "in": "query", "schema": { "type": "string", "enum": ["feed", "comentarios"] } },
+          { "name": "pagina", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "post_id", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Posts ou comentarios" } }
+      },
+      "post": {
+        "tags": ["Posts"],
+        "summary": "Cria, curte, comenta ou deleta post conforme acao",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "acao": { "type": "string", "enum": ["criar", "curtir", "comentar", "deletar"] },
+                  "texto": { "type": "string" },
+                  "post_id": { "type": "integer" },
+                  "comunidade_id": { "type": "integer" },
+                  "midia": { "type": "string", "format": "binary" }
+                },
+                "required": ["acao"]
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Resultado da acao" } }
+      }
+    },
+    "/api/follow": {
+      "get": {
+        "tags": ["Social"],
+        "summary": "Contagens ou sugestoes para seguir",
+        "parameters": [
+          { "name": "acao", "in": "query", "schema": { "type": "string", "enum": ["contagens", "sugestoes"] } },
+          { "name": "usuario_id", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Contagens ou sugestoes" } }
+      },
+      "post": {
+        "tags": ["Social"],
+        "summary": "Segue ou deixa de seguir usuario",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "acao": { "type": "string", "enum": ["toggle"] },
+                  "usuario_id": { "type": "integer" }
+                },
+                "required": ["acao", "usuario_id"]
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Resultado do follow" } }
+      }
+    },
+    "/api/communities": {
+      "get": {
+        "tags": ["Comunidades"],
+        "summary": "Lista, detalha, lista feed ou membros de comunidades conforme acao",
+        "parameters": [
+          { "name": "acao", "in": "query", "schema": { "type": "string", "enum": ["listar", "detalhe", "feed", "membros"] } },
+          { "name": "id", "in": "query", "schema": { "type": "integer" } },
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "categoria", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Resultado da consulta" } }
+      },
+      "post": {
+        "tags": ["Comunidades"],
+        "summary": "Cria, entra, sai, atualiza, remove membro ou fixa post conforme acao",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "acao": { "type": "string", "enum": ["criar", "entrar", "sair", "atualizar_info", "remover_membro", "fixar_post", "desafio"] },
+                  "id": { "type": "integer" },
+                  "nome": { "type": "string" },
+                  "descricao": { "type": "string" },
+                  "categoria": { "type": "string" },
+                  "usuario_id": { "type": "integer" },
+                  "post_id": { "type": "integer" },
+                  "fixado": { "type": "integer", "enum": [0, 1] }
+                },
+                "required": ["acao"]
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Resultado da acao" } }
+      }
+    },
+    "/api/search": {
+      "get": {
+        "tags": ["Busca"],
+        "summary": "Busca usuarios, posts e comunidades",
+        "parameters": [{ "name": "q", "in": "query", "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Resultados agrupados" } }
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "tags": ["Notificacoes"],
+        "summary": "Lista notificacoes do usuario logado",
+        "responses": { "200": { "description": "Lista de notificacoes" } }
+      }
+    },
+    "/api/coach": {
+      "post": {
+        "tags": ["Coach"],
+        "summary": "Arena Coach: chat, analise de imagem ou geracao de imagem",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "acao": { "type": "string", "enum": ["chat", "analisar_imagem", "gerar_imagem"] },
+                  "mensagem": { "type": "string" },
+                  "prompt": { "type": "string" },
+                  "imagem": { "type": "string", "format": "binary" }
+                },
+                "required": ["acao"]
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Resposta do coach" } }
+      }
+    },
+    "/api/coach/stream": {
+      "get": {
+        "tags": ["Coach"],
+        "summary": "Arena Coach com resposta em SSE",
+        "parameters": [{ "name": "mensagem", "in": "query", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Stream SSE",
+            "content": { "text/event-stream": { "schema": { "type": "string" } } }
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Lista perfis para moderacao",
+        "parameters": [{ "name": "q", "in": "query", "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Usuarios cadastrados" } }
+      }
+    },
+    "/api/admin/posts": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Lista posts para moderacao",
+        "parameters": [{ "name": "q", "in": "query", "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Posts recentes" } }
+      }
+    },
+    "/api/admin/posts/delete": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Remove publicacao impropria",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": { "post_id": { "type": "integer" } },
+                "required": ["post_id"]
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Post removido" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UsuarioResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean" },
+          "usuario": {
+            "type": "object",
+            "properties": {
+              "nome": { "type": "string" },
+              "username": { "type": "string" },
+              "bio": { "type": "string" },
+              "foto": { "type": "string" },
+              "cidade": { "type": "string" },
+              "esporte_favorito": { "type": "string" },
+              "posicao_modalidade": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

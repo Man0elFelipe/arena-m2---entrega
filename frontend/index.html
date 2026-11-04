@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena+ | Entrar</title>
+    <meta name="description" content="Arena+: a rede social onde o esporte conecta pessoas e cria oportunidades.">
+    <link rel="icon" href="img/logo-arena.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<main class="auth">
+    <section class="auth-hero">
+        <a href="index.html" class="marca"><img src="img/logo-arena.png" alt="" width="36" height="36"><span>Arena<b>+</b></span></a>
+        <div>
+            <h1>O esporte conecta pessoas e cria oportunidades.</h1>
+            <p>Compartilhe sua evolução, participe de comunidades e dê visibilidade ao seu talento — independente da modalidade ou do nível.</p>
+            <ul class="pilares">
+                <li><i class="fa-solid fa-camera" aria-hidden="true"></i> Publique treinos, jogos e conquistas</li>
+                <li><i class="fa-solid fa-people-group" aria-hidden="true"></i> Encontre comunidades do seu esporte</li>
+                <li><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i> Inclusão: acesso gratuito a projetos sociais</li>
+            </ul>
+        </div>
+        <small>Projeto Interdisciplinar · FATEC</small>
+    </section>
+
+    <section class="auth-form-area">
+        <div class="auth-box">
+            <div class="alternar" role="tablist" aria-label="Entrar ou criar conta">
+                <button role="tab" id="tab-entrar" aria-selected="true" aria-controls="form-login">Entrar</button>
+                <button role="tab" id="tab-cadastro" aria-selected="false" aria-controls="form-cadastro">Criar conta</button>
+            </div>
+
+            <div id="alerta" class="alerta alerta-erro" role="alert" hidden></div>
+
+            <form id="form-login" role="tabpanel" aria-labelledby="tab-entrar" novalidate>
+                <h2>Bem-vindo de volta</h2>
+                <p>Entre para ver o que sua rede está treinando.</p>
+                <label class="campo"><span>Email</span>
+                    <input type="email" name="email" autocomplete="email" required placeholder="voce@email.com">
+                </label>
+                <label class="campo"><span>Senha</span>
+                    <input type="password" name="senha" autocomplete="current-password" required minlength="1">
+                </label>
+                <button class="btn btn-primario btn-bloco" data-carregando="Entrando">Entrar</button>
+                <div class="demo-dica">
+                    <strong>Demonstração:</strong> use <code>lucas@arenaplus.dev</code> com a senha <code>arena123</code>
+                    (dados de exemplo criados pela API no primeiro start).
+                </div>
+            </form>
+
+            <form id="form-cadastro" role="tabpanel" aria-labelledby="tab-cadastro" hidden novalidate>
+                <h2>Crie sua conta</h2>
+                <p>É gratuito. Sua senha é armazenada apenas como hash.</p>
+                <label class="campo"><span>Nome *</span>
+                    <input name="nome" autocomplete="name" required maxlength="100">
+                    <small class="msg-campo" data-campo="nome"></small>
+                </label>
+                <label class="campo"><span>Email *</span>
+                    <input type="email" name="email" autocomplete="email" required maxlength="150">
+                    <small class="msg-campo" data-campo="email"></small>
+                </label>
+                <label class="campo"><span>Senha * (mín. 6 caracteres)</span>
+                    <input type="password" name="senha" autocomplete="new-password" required minlength="6" maxlength="72">
+                    <small class="msg-campo" data-campo="senha"></small>
+                </label>
+                <div class="linha-campos">
+                    <label class="campo"><span>Esporte principal</span>
+                        <input name="esportePrincipal" list="esportes" maxlength="60" placeholder="Ex.: Futebol">
+                    </label>
+                    <label class="campo"><span>Cidade</span>
+                        <input name="cidade" autocomplete="address-level2" maxlength="100">
+                    </label>
+                </div>
+                <datalist id="esportes">
+                    <option>Futebol</option><option>Vôlei</option><option>Basquete</option><option>Corrida</option>
+                    <option>Musculação</option><option>Tênis</option><option>Capoeira</option><option>Boxe</option><option>Ginástica</option>
+                </datalist>
+                <button class="btn btn-primario btn-bloco" data-carregando="Criando conta">Criar conta</button>
+            </form>
+        </div>
+    </section>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/session.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/pages/index.js"></script>
+</body>
+</html>

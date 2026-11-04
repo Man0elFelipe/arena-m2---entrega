@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena+ | Início</title>
+    <link rel="icon" href="img/logo-arena.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<main class="pagina grade-feed">
+    <aside class="lateral lateral-esq" aria-label="Seu perfil e comunidades">
+        <section class="card mini-perfil" id="mini-perfil">
+            <div class="mini-perfil-capa"></div>
+            <div id="mini-perfil-conteudo"></div>
+        </section>
+        <section class="card card-pad">
+            <h2 class="card-titulo"><i class="fa-solid fa-people-group" aria-hidden="true"></i> Minhas comunidades</h2>
+            <ul class="lista-links" id="minhas-comunidades"></ul>
+        </section>
+        <section class="card card-pad card-missao">
+            <h2 class="card-titulo"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i> Esporte que transforma</h2>
+            <p>A Arena+ é gratuita para atletas de baixa renda e projetos sociais. Mostre sua evolução: cada publicação é uma vitrine do seu talento.</p>
+            <a href="comunidades.html" class="btn btn-secundario btn-pequeno btn-bloco">Encontrar minha comunidade</a>
+        </section>
+    </aside>
+
+    <section class="coluna" aria-label="Feed">
+        <form class="card compor" id="form-publicar" novalidate>
+            <div class="compor-linha">
+                <span id="compor-avatar"></span>
+                <div style="flex:1">
+                    <label for="texto-publicacao" class="sr-only">O que você treinou hoje?</label>
+                    <textarea id="texto-publicacao" name="texto" maxlength="2000" rows="2" placeholder="Compartilhe um treino, jogo ou conquista..." required></textarea>
+                </div>
+            </div>
+            <div class="compor-extra">
+                <label><span class="sr-only">Publicar em</span>
+                    <select name="comunidadeId" id="sel-comunidade" aria-label="Publicar em">
+                        <option value="">🌐 Feed geral</option>
+                    </select>
+                </label>
+                <label><span class="sr-only">URL da imagem ou vídeo</span>
+                    <input name="midiaUrl" list="midias-exemplo" maxlength="500" placeholder="📷 URL de imagem/vídeo (opcional)" aria-label="URL de imagem ou vídeo (opcional)">
+                </label>
+                <datalist id="midias-exemplo">
+                    <option value="img/futebol.jpeg"><option value="img/volei.jpeg"><option value="img/academia.jpeg">
+                    <option value="img/basquete.jpeg"><option value="img/tenis.jpeg"><option value="img/boxe.jpeg">
+                    <option value="img/ginastica.jpeg"><option value="img/capoeira.webp">
+                </datalist>
+            </div>
+            <div class="preview-midia" id="preview-midia" hidden></div>
+            <div class="compor-rodape">
+                <span class="contador" id="contador">0/2000</span>
+                <button class="btn btn-primario" data-carregando="Publicando"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Publicar</button>
+            </div>
+        </form>
+
+        <div class="abas" role="tablist" aria-label="Tipo de feed">
+            <button class="aba" role="tab" aria-selected="true" data-feed="seguindo">Seguindo</button>
+            <button class="aba" role="tab" aria-selected="false" data-feed="explorar">Explorar</button>
+        </div>
+
+        <div id="lista-posts" class="coluna" aria-live="polite"></div>
+        <div class="mais"><button class="btn btn-secundario" id="btn-mais" hidden data-carregando="Carregando">Carregar mais</button></div>
+    </section>
+
+    <aside class="lateral lateral-dir" aria-label="Sugestões">
+        <section class="card card-pad">
+            <h2 class="card-titulo"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Quem seguir</h2>
+            <div id="sugestoes"></div>
+            <a href="pessoas.html" class="btn btn-secundario btn-bloco btn-pequeno" style="margin-top:.5rem">Ver todas as pessoas</a>
+        </section>
+        <section class="card card-pad">
+            <h2 class="card-titulo"><i class="fa-solid fa-fire" aria-hidden="true"></i> Comunidades em alta</h2>
+            <ul class="lista-links" id="comunidades-alta"></ul>
+        </section>
+    </aside>
+</main>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/session.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/components.js"></script>
+<script src="js/pages/feed.js"></script>
+</body>
+</html>

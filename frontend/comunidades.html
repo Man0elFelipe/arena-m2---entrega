@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena+ | Comunidades</title>
+    <link rel="icon" href="img/logo-arena.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<main class="pagina">
+    <div class="titulo-pagina">
+        <div>
+            <h1>Comunidades</h1>
+            <p>Encontre pessoas que praticam o mesmo esporte que você.</p>
+        </div>
+        <button class="btn btn-primario" id="btn-criar"><i class="fa-solid fa-plus" aria-hidden="true"></i> Criar comunidade</button>
+    </div>
+    <form class="busca" id="form-busca" role="search" style="max-width:none;display:block;margin-bottom:1rem">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <label for="busca" class="sr-only">Buscar comunidades</label>
+        <input id="busca" name="busca" type="search" placeholder="Buscar por nome ou descrição" style="background:var(--superficie);border-color:var(--borda)">
+    </form>
+    <div class="filtros" id="filtros" role="group" aria-label="Filtrar por esporte"></div>
+    <div id="grade" class="grade-comunidades" aria-live="polite"></div>
+</main>
+
+<dialog class="dialogo" id="dlg-criar">
+    <form id="form-criar" novalidate>
+        <h3>Nova comunidade</h3>
+        <label class="campo"><span>Nome *</span><input name="nome" required maxlength="100" placeholder="Ex.: Corredores da Zona Leste"></label>
+        <label class="campo"><span>Esporte *</span><input name="esporte" required maxlength="60" list="esportes" placeholder="Ex.: Corrida"></label>
+        <label class="campo"><span>Descrição *</span><textarea name="descricao" rows="3" required maxlength="1000" placeholder="Qual é o objetivo do grupo?"></textarea></label>
+        <label class="campo"><span>URL da imagem de capa</span><input name="imagemUrl" maxlength="500" list="capas" placeholder="img/futebol.jpeg ou https://..."></label>
+        <datalist id="esportes"><option>Futebol</option><option>Vôlei</option><option>Basquete</option><option>Corrida</option><option>Musculação</option><option>Tênis</option><option>Capoeira</option><option>Boxe</option><option>Ginástica</option></datalist>
+        <datalist id="capas"><option value="img/futebol.jpeg"><option value="img/volei.jpeg"><option value="img/basquete.jpeg"><option value="img/academia.jpeg"><option value="img/boxe.jpeg"><option value="img/ginastica.jpeg"><option value="img/capoeira.webp"><option value="img/tenis.jpeg"></datalist>
+        <div class="dialogo-acoes">
+            <button type="button" class="btn btn-secundario" id="btn-cancelar">Cancelar</button>
+            <button class="btn btn-primario" data-carregando="Criando">Criar</button>
+        </div>
+    </form>
+</dialog>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/session.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/components.js"></script>
+<script src="js/pages/comunidades.js"></script>
+</body>
+</html>
