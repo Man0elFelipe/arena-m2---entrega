@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena+ | Mensagens</title>
+    <link rel="icon" href="img/logo-arena.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<main class="pagina pagina-chat">
+    <div class="chat" id="chat">
+        <aside class="chat-lista" aria-label="Conversas">
+            <div class="chat-lista-topo">
+                <h1>Mensagens</h1>
+                <form class="busca-chat" role="search" id="form-busca-chat" novalidate>
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <label for="busca-usuario" class="sr-only">Buscar pessoas para conversar</label>
+                    <input id="busca-usuario" type="search" placeholder="Buscar pessoas para conversar" autocomplete="off">
+                </form>
+            </div>
+            <div id="resultados-busca" class="chat-resultados" hidden></div>
+            <ul id="lista-conversas" class="chat-conversas" aria-live="polite"></ul>
+        </aside>
+
+        <section class="chat-janela" aria-label="Conversa aberta">
+            <div class="chat-vazio" id="chat-vazio">
+                <i class="fa-regular fa-comments estado-icone" aria-hidden="true"></i>
+                <h2>Suas mensagens</h2>
+                <p>Escolha uma conversa ou busque alguém para combinar um treino.</p>
+            </div>
+            <div class="chat-conteudo" id="chat-conteudo" hidden>
+                <header class="chat-topo">
+                    <button type="button" class="btn-icone chat-voltar" id="chat-voltar" aria-label="Voltar às conversas"><i class="fa-solid fa-arrow-left"></i></button>
+                    <a href="#" id="chat-pessoa" class="chat-pessoa"></a>
+                </header>
+                <div class="chat-mensagens" id="chat-mensagens" role="log" aria-live="polite" aria-label="Mensagens"></div>
+                <form class="chat-form" id="chat-form" novalidate>
+                    <label for="chat-texto" class="sr-only">Escreva uma mensagem</label>
+                    <textarea id="chat-texto" rows="1" maxlength="2000" placeholder="Escreva uma mensagem..." required></textarea>
+                    <button class="btn btn-primario" id="chat-enviar" aria-label="Enviar mensagem"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </section>
+    </div>
+</main>
+<script src="js/config.js"></script>
+<script src="js/session.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/components.js"></script>
+<script src="js/coach.js"></script>
+<script src="js/pages/mensagens.js"></script>
+</body>
+</html>

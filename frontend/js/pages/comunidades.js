@@ -55,8 +55,8 @@
     if (participa && !(await window.UI.confirmar('Sair da comunidade?', 'Você pode entrar novamente quando quiser.', 'Sair', false))) return;
     await comCarregamento(btn, async () => {
       try {
-        if (participa) await window.Api.membros.sair(eu.id, id);
-        else await window.Api.membros.entrar(eu.id, id);
+        if (participa) await window.Api.membros.sair(id);
+        else await window.Api.membros.entrar(id);
         toast(participa ? 'Você saiu da comunidade.' : 'Bem-vindo à comunidade!');
       } catch (e) { erro(e); }
     });
@@ -71,7 +71,7 @@
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const f = form.elements;
-    const dados = { nome: f.nome.value.trim(), esporte: f.esporte.value.trim(), descricao: f.descricao.value.trim(), imagemUrl: f.imagemUrl.value.trim() || null, criadorId: eu.id };
+    const dados = { nome: f.nome.value.trim(), esporte: f.esporte.value.trim(), descricao: f.descricao.value.trim(), imagemUrl: f.imagemUrl.value.trim() || null };
     if (!dados.nome || !dados.esporte || !dados.descricao) return toast('Preencha nome, esporte e descrição.', 'erro');
     await comCarregamento(form.querySelector('.btn-primario'), async () => {
       try {

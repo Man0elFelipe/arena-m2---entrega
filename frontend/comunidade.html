@@ -14,15 +14,12 @@
     <section class="card banner-comunidade" id="banner" aria-live="polite"></section>
     <div class="grade-2">
         <section class="coluna">
-            <form class="card compor" id="form-publicar" hidden novalidate>
-                <label for="texto-publicacao" class="sr-only">Publicar na comunidade</label>
-                <textarea id="texto-publicacao" name="texto" maxlength="2000" rows="2" placeholder="Compartilhe algo com a comunidade..." required></textarea>
-                <div class="compor-rodape">
-                    <input name="midiaUrl" maxlength="500" placeholder="📷 URL de imagem/vídeo (opcional)" aria-label="URL de imagem ou vídeo (opcional)"
-                           style="flex:1;padding:.5rem .7rem;border:1.5px solid var(--borda);border-radius:var(--raio-sm);font-size:.88rem">
-                    <button class="btn btn-primario" data-carregando="Publicando"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Publicar</button>
-                </div>
-            </form>
+            <div id="area-publicar" hidden>
+                <button type="button" class="card compor compor-atalho" id="abrir-publicar">
+                    <span class="compor-texto">Compartilhe algo com a comunidade...</span>
+                    <span class="compor-icones" aria-hidden="true"><i class="fa-regular fa-image"></i><i class="fa-solid fa-video"></i></span>
+                </button>
+            </div>
             <div id="lista-posts" class="coluna" aria-live="polite"></div>
             <div class="mais"><button class="btn btn-secundario" id="btn-mais" hidden data-carregando="Carregando">Carregar mais</button></div>
         </section>
@@ -52,10 +49,11 @@
     </form>
 </dialog>
 <script src="js/config.js"></script>
-<script src="js/api.js"></script>
 <script src="js/session.js"></script>
+<script src="js/api.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/components.js"></script>
+<script src="js/coach.js"></script>
 <script src="js/pages/comunidade.js"></script>
 </body>
 </html>

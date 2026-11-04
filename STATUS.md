@@ -1,3 +1,48 @@
+# STATUS — Arena+ 2.2 (handoff para o Codex)
+
+> **Última atualização:** 03/11/2026. Branch `arena-2.2` (checkpoint em `main`: `010456f`). Entrega: **segunda, 09/11/2026**.
+> **Prompt para continuar:** [CODEX_PROMPT.md](CODEX_PROMPT.md).
+> ⚠️ As seções abaixo desta (Fase A/B, "STATUS — Arena+ 2.0") descrevem o modelo ANTIGO, sem token (`usuarioId` no corpo, `viewerId`, etc.). Valem como histórico; **onde houver conflito, vale esta seção**.
+
+## 2.2 — Resumo
+
+| Item | Situação |
+|---|---|
+| Autenticação por token Bearer + autorização (dono/moderador/admin) + limite de requisições | ✅ Testado (integração + smoke 58/58) |
+| Upload de imagem (JPEG/PNG/WebP) e vídeo (MP4), servidos em `/media/**`, persistência após reinício | ✅ Testado no navegador e por `curl` |
+| Perfil esportivo + foto de perfil por upload + consentimentos de privacidade | ✅ Testado no navegador |
+| Publicações salvas, busca com filtros (esporte/cidade), parceiros (`/usuarios/parceiros`) | ✅ API testada · 🔶 telas **escritas, sem teste manual** |
+| Chat privado | ✅ Backend testado (privacidade, não lidas) · 🔶 tela `mensagens.html` **escrita, sem teste no navegador** |
+| Navegação nova, sem usuário fixo | ✅ Login e cabeçalho verificados · 🔶 mobile da nova barra não reverificado |
+| Arena Coach (OpenAI) | ⛔ Não iniciado (`js/coach.js` é um stub; properties prontas) |
+| Eventos esportivos | ⛔ Não iniciado (métodos já previstos em `js/api.js`) |
+| Stories / desafios (P3) | ⛔ Não iniciado |
+| Documentação do modelo com token (`DEMO_SWAGGER.md`, README, ARQUITETURA, CHECKLIST) | ⛔ **Desatualizada** |
+
+## 2.2 — Testes realmente executados
+
+- `./mvnw test`: **44 testes, 0 falhas** (integração + `PublicacaoServiceTest` + `SeguimentoServiceTest`).
+- `scripts/smoke-test-api.sh` contra instância isolada: **58 ok, 0 falhas** (executado **antes** do chat; o script ainda não cobre chat).
+- Navegador (instância isolada 8099/3099):
+  - login real com token;
+  - upload e exibição de JPEG, PNG e MP4 (o vídeo reproduz);
+  - PDF/GIF/arquivos acima do limite rejeitados no cliente, e arquivo falso `.jpg` rejeitado pelo servidor;
+  - edição do perfil esportivo e da foto.
+- Persistência: após reiniciar a API (mesmo banco e pasta de uploads), os 8 posts e as 4 mídias continuaram servidas e o seeder não rodou de novo.
+
+## 2.2 — Próxima tarefa exata
+
+Seguir a seção 3 do [CODEX_PROMPT.md](CODEX_PROMPT.md): **A** (testar no navegador o que foi escrito) → **B** (Coach) → **C** (Eventos) → **D** (smoke, docs, testes finais).
+
+## 2.2 — Notas
+
+- A chave da OpenAI foi colada no chat durante o desenvolvimento. **Ela não foi gravada em nenhum arquivo**, mas deve ser revogada e recriada; use só a variável de ambiente `OPENAI_API_KEY`.
+- As contas de demonstração usam a senha `arena123` (apenas dados de teste do seeder).
+- `iniciar.sh` continua válido (`./iniciar.sh --limpo`). Como o esquema do banco mudou, use `--limpo` na primeira execução desta versão.
+- "Notificações" não existem no backend; não foram simuladas.
+
+---
+
 # STATUS — Arena+ 2.0
 
 > **Última atualização:** 03/11/2026, Fase B concluída (P0 + P1 verificados).

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena+ | Explorar</title>
+    <link rel="icon" href="img/logo-arena.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<main class="pagina">
+    <div class="titulo-pagina">
+        <div>
+            <h1>Explorar</h1>
+            <p>Encontre atletas, comunidades, parceiros de treino e publicações.</p>
+        </div>
+    </div>
+
+    <div class="abas abas-rolaveis" role="tablist" aria-label="O que explorar" id="abas">
+        <button class="aba" role="tab" aria-selected="false" data-aba="publicacoes">Publicações</button>
+        <button class="aba" role="tab" aria-selected="false" data-aba="pessoas">Pessoas</button>
+        <button class="aba" role="tab" aria-selected="false" data-aba="comunidades">Comunidades</button>
+        <button class="aba" role="tab" aria-selected="false" data-aba="parceiros">Encontrar parceiros</button>
+    </div>
+
+    <form class="filtros-linha" id="filtros" role="search" novalidate>
+        <label class="campo" data-filtro="q"><span>Buscar</span>
+            <input name="q" type="search" placeholder="Nome, esporte ou cidade" autocomplete="off"></label>
+        <label class="campo" data-filtro="esporte"><span>Esporte</span>
+            <input name="esporte" list="lista-esportes" placeholder="Ex.: Vôlei" autocomplete="off"></label>
+        <label class="campo" data-filtro="cidade"><span>Cidade</span>
+            <input name="cidade" placeholder="Ex.: Campinas" autocomplete="off"></label>
+        <label class="campo" data-filtro="nivel"><span>Nível</span>
+            <select name="nivel">
+                <option value="">Qualquer nível</option><option value="INICIANTE">Iniciante</option><option value="INTERMEDIARIO">Intermediário</option>
+                <option value="AVANCADO">Avançado</option><option value="PROFISSIONAL">Profissional</option>
+            </select></label>
+        <datalist id="lista-esportes">
+            <option>Futebol</option><option>Vôlei</option><option>Basquete</option><option>Corrida</option><option>Musculação</option>
+            <option>Tênis</option><option>Capoeira</option><option>Boxe</option><option>Ginástica</option><option>Natação</option><option>Ciclismo</option>
+        </datalist>
+    </form>
+
+    <p class="resumo-resultados" id="resumo" aria-live="polite"></p>
+    <div id="resultados" aria-live="polite"></div>
+    <div class="mais"><button class="btn btn-secundario" id="btn-mais" hidden data-carregando="Carregando">Carregar mais</button></div>
+</main>
+<script src="js/config.js"></script>
+<script src="js/session.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/components.js"></script>
+<script src="js/coach.js"></script>
+<script src="js/pages/explorar.js"></script>
+</body>
+</html>

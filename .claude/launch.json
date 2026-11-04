@@ -4,8 +4,21 @@
     {
       "name": "arena-frontend",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["frontend/server.js"],
+      "runtimeArgs": [
+        "frontend/server.js"
+      ],
       "port": 3000
+    },
+    {
+      "name": "arena-frontend-teste",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PORT=3099",
+        "API_BASE_URL=http://localhost:8099/api",
+        "node",
+        "frontend/server.js"
+      ],
+      "port": 3099
     }
   ]
 }

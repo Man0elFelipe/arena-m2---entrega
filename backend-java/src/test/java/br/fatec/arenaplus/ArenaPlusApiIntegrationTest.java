@@ -604,4 +604,48 @@ class ArenaPlusApiIntegrationTest {
         doDelete(autor.token(), "/api/publicacoes/" + pub).andExpect(status().isNoContent());
         doGet(leitor.token(), "/api/salvos").andExpect(jsonPath("$.totalElementos").value(0));
     }
+
+    // ---------- Chat privado ----------
+
+    @Test
+    void chatEntreDoisUsuariosPersisteEContaNaoLidasEImpedeTerceiros() throws Exception {
+        U ana = novoUsuario("Ana Chat");
+        U bia = novoUsuario("Bia Chat");
+        U intruso = novoUsuario("Intruso Chat");
+
+        long conversa = id(doPost(ana.token(), "/api/conversas", "{\"usuarioId\":%d}".formatted(bia.id())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.outro.id").value(bia.id())));
+        // idempotente: a Bia chega na MESMA conversa
+        doPost(bia.token(), "/api/conversas", "{\"usuarioId\":%d}".formatted(ana.id())).andExpect(jsonPath("$.id").value(conversa));
+        doPost(ana.token(), "/api/conversas", "{\"usuarioId\":%d}".formatted(ana.id())).andExpect(status().isBadRequest());
+
+        doPost(ana.token(), "/api/conversas/" + conversa + "/mensagens", "{\"texto\":\"Bora treinar sábado?\"}")
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.remetenteId").value(ana.id())).andExpect(jsonPath("$.lida").value(false))
+                .andExpect(jsonPath("$.enviadaEm").exists());
+        long ultima = id(doPost(ana.token(), "/api/conversas/" + conversa + "/mensagens", "{\"texto\":\"Às 8h no parque\"}").andExpect(status().isCreated()));
+
+        // indicador de não lidas: só o destinatário tem
+        doGet(bia.token(), "/api/conversas/nao-lidas").andExpect(jsonPath("$.total").value(2));
+        doGet(ana.token(), "/api/conversas/nao-lidas").andExpect(jsonPath("$.total").value(0));
+        doGet(bia.token(), "/api/conversas").andExpect(jsonPath("$[0].naoLidas").value(2))
+                .andExpect(jsonPath("$[0].ultimaMensagem.texto").value("Às 8h no parque")).andExpect(jsonPath("$[0].outro.id").value(ana.id()));
+
+        // um terceiro não lê, não escreve e não conta mensagens alheias
+        doGet(intruso.token(), "/api/conversas/" + conversa + "/mensagens").andExpect(status().isForbidden());
+        doPost(intruso.token(), "/api/conversas/" + conversa + "/mensagens", "{\"texto\":\"oi\"}").andExpect(status().isForbidden());
+        doGet(intruso.token(), "/api/conversas").andExpect(jsonPath("$", hasSize(0)));
+        doGet(intruso.token(), "/api/conversas/nao-lidas").andExpect(jsonPath("$.total").value(0));
+        doGet(null, "/api/conversas/" + conversa + "/mensagens").andExpect(status().isUnauthorized());
+
+        // abrir a conversa marca como lida
+        doGet(bia.token(), "/api/conversas/" + conversa + "/mensagens").andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].texto").value("Bora treinar sábado?"));
+        doGet(bia.token(), "/api/conversas/nao-lidas").andExpect(jsonPath("$.total").value(0));
+        doPost(bia.token(), "/api/conversas/" + conversa + "/mensagens", "{\"texto\":\"Fechado!\"}").andExpect(status().isCreated());
+        // atualização periódica: só o que chegou depois
+        doGet(ana.token(), "/api/conversas/" + conversa + "/mensagens?apos=" + ultima).andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].texto").value("Fechado!"));
+        doPost(ana.token(), "/api/conversas/" + conversa + "/mensagens", "{\"texto\":\"   \"}").andExpect(status().isBadRequest());
+        doGet(ana.token(), "/api/conversas/987654/mensagens").andExpect(status().isNotFound());
+    }
 }

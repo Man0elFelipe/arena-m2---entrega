@@ -7,7 +7,7 @@
   const id = Number(window.UI.param('id'));
   const banner = document.getElementById('banner');
   const lista = document.getElementById('lista-posts');
-  const form = document.getElementById('form-publicar');
+  const form = document.getElementById('area-publicar');
   let comunidade = null;
   let minhaParticipacao = null;
 
@@ -98,7 +98,7 @@
     btnMais.hidden = true;
     lista.innerHTML = window.UI.esqueleto(2);
     try {
-      const pag = await window.Api.publicacoes.listar({ comunidadeId: id, viewerId: eu.id, tamanho: 10 });
+      const pag = await window.Api.publicacoes.listar({ comunidadeId: id, tamanho: 10 });
       lista.innerHTML = pag.conteudo.length
         ? pag.conteudo.map((p) => window.Componentes.postHtml(p, eu.id)).join('')
         : vazio('fa-comments', 'Nenhuma publicação nesta comunidade', minhaParticipacao ? 'Comece a conversa!' : 'Entre na comunidade para publicar.');
@@ -110,7 +110,7 @@
 
   btnMais.addEventListener('click', () => comCarregamento(btnMais, async () => {
     try {
-      const pag = await window.Api.publicacoes.listar({ comunidadeId: id, viewerId: eu.id, tamanho: 10, pagina: pagina + 1 });
+      const pag = await window.Api.publicacoes.listar({ comunidadeId: id, tamanho: 10, pagina: pagina + 1 });
       pagina += 1;
       lista.insertAdjacentHTML('beforeend', pag.conteudo.map((p) => window.Componentes.postHtml(p, eu.id)).join(''));
       btnMais.hidden = pag.ultima;
@@ -123,27 +123,17 @@
     if (minhaParticipacao && !(await window.UI.confirmar('Sair da comunidade?', 'Você não poderá mais publicar aqui até entrar novamente.', 'Sair', false))) return;
     await comCarregamento(btn, async () => {
       try {
-        if (minhaParticipacao) await window.Api.membros.sair(eu.id, id);
-        else await window.Api.membros.entrar(eu.id, id);
+        if (minhaParticipacao) await window.Api.membros.sair(id);
+        else await window.Api.membros.entrar(id);
         toast(minhaParticipacao ? 'Você saiu da comunidade.' : 'Bem-vindo à comunidade!');
       } catch (e) { erro(e); }
     });
     carregarTudo();
   }
 
-  form.addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    const texto = form.elements.texto.value.trim();
-    if (!texto) return toast('Escreva algo antes de publicar.', 'info');
-    await comCarregamento(form.querySelector('button'), async () => {
-      try {
-        await window.Api.publicacoes.criar({ usuarioId: eu.id, comunidadeId: id, texto, midiaUrl: form.elements.midiaUrl.value.trim() || null });
-        form.reset();
-        toast('Publicado na comunidade!');
-        carregarPosts();
-      } catch (e) { erro(e); }
-    });
-  });
+  // Publicar na comunidade usa o mesmo diálogo (com upload) da navegação, já com a comunidade selecionada.
+  document.getElementById('abrir-publicar').addEventListener('click', () => window.Componentes.abrirPublicar({ comunidadeId: id }));
+  window.addEventListener('arena:publicado', () => carregarTudo());
 
   // ---------- Moderação ----------
   const dlg = document.getElementById('dlg-editar');

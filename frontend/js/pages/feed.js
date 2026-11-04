@@ -6,7 +6,6 @@
 
   const lista = document.getElementById('lista-posts');
   const btnMais = document.getElementById('btn-mais');
-  const form = document.getElementById('form-publicar');
   let modo = 'seguindo';
   let pagina = 0;
 
@@ -28,21 +27,18 @@
           <a href="perfil.html?id=${eu.id}#seguindo"><b>${p.totalSeguindo}</b><span>seguindo</span></a>
         </div>`;
     } catch (e) {
-      if (e.status === 404) return window.Sessao.sair(); // usuário salvo não existe mais (banco recriado)
+      if (e.status === 404) { window.Sessao.limpar(); return window.location.replace('index.html'); } // conta inexistente
       alvo.innerHTML = `<p class="estado">${esc(e.message)}</p>`;
     }
   }
 
   async function carregarMinhasComunidades() {
     const ul = document.getElementById('minhas-comunidades');
-    const sel = document.getElementById('sel-comunidade');
     try {
       const minhas = await window.Api.membros.doUsuario(eu.id);
       ul.innerHTML = minhas.length
         ? minhas.map((m) => `<li><a href="comunidade.html?id=${m.comunidadeId}"><i class="fa-solid fa-hashtag" aria-hidden="true"></i> ${esc(m.comunidadeNome)}</a></li>`).join('')
         : '<li><a href="comunidades.html"><i class="fa-solid fa-compass" aria-hidden="true"></i> Descobrir comunidades</a></li>';
-      sel.innerHTML = '<option value="">🌐 Feed geral</option>' +
-        minhas.map((m) => `<option value="${m.comunidadeId}">👥 ${esc(m.comunidadeNome)}</option>`).join('');
     } catch (e) {
       ul.innerHTML = `<li class="sem-comentarios">${esc(e.message)}</li>`;
     }
@@ -100,8 +96,8 @@
   // ---------- Feed ----------
   async function buscarPagina(p) {
     return modo === 'seguindo'
-      ? window.Api.usuarios.feed(eu.id, p, 10)
-      : window.Api.publicacoes.listar({ viewerId: eu.id, pagina: p, tamanho: 10 });
+      ? window.Api.publicacoes.feed(p, 10)
+      : window.Api.publicacoes.listar({ pagina: p, tamanho: 10 });
   }
 
   async function recarregar() {
@@ -141,47 +137,9 @@
 
   window.Componentes.ligarPosts(lista, { aoMudar: carregarPerfil });
 
-  // ---------- Publicar ----------
-  const texto = form.elements.texto;
-  const contador = document.getElementById('contador');
-  const preview = document.getElementById('preview-midia');
-  texto.addEventListener('input', () => {
-    contador.textContent = texto.value.length + '/2000';
-    texto.style.height = 'auto';
-    texto.style.height = Math.min(texto.scrollHeight, 300) + 'px';
-  });
-  form.elements.midiaUrl.addEventListener('input', () => {
-    const url = urlSegura(form.elements.midiaUrl.value.trim());
-    preview.hidden = !url || /\.(mp4|webm|mov)$/i.test(url);
-    preview.innerHTML = preview.hidden ? '' : `<img src="${esc(url)}" alt="Pré-visualização da mídia" onerror="this.parentElement.hidden=true">`;
-  });
-
-  form.addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    const t = texto.value.trim();
-    if (!t) {
-      texto.focus();
-      return toast('Escreva algo antes de publicar.', 'info');
-    }
-    await comCarregamento(form.querySelector('button'), async () => {
-      try {
-        const comunidadeId = form.elements.comunidadeId.value;
-        await window.Api.publicacoes.criar({
-          usuarioId: eu.id,
-          comunidadeId: comunidadeId ? Number(comunidadeId) : null,
-          texto: t,
-          midiaUrl: form.elements.midiaUrl.value.trim() || null,
-        });
-        form.reset();
-        texto.style.height = '';
-        contador.textContent = '0/2000';
-        preview.hidden = true;
-        toast('Publicação criada!');
-        carregarPerfil();
-        recarregar();
-      } catch (e) { erro(e); }
-    });
-  });
+  // ---------- Publicar (diálogo com upload, compartilhado com a navegação) ----------
+  document.getElementById('abrir-publicar').addEventListener('click', () => window.Componentes.abrirPublicar());
+  window.addEventListener('arena:publicado', () => { carregarPerfil(); recarregar(); });
 
   carregarPerfil();
   carregarMinhasComunidades();

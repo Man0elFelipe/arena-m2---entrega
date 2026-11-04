@@ -23,6 +23,12 @@ const TIPOS = {
 http.createServer((req, res) => {
   let rel = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   if (rel === '/') rel = '/index.html';
+  // A URL da API vem de API_BASE_URL (padrão http://localhost:8080/api): permite trocar a porta sem editar arquivos.
+  if (rel === '/js/config.js') {
+    res.writeHead(200, { 'Content-Type': TIPOS['.js'], 'Cache-Control': 'no-cache' });
+    res.end('window.ARENA_CONFIG = ' + JSON.stringify({ API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:8080/api' }) + ';');
+    return;
+  }
   const arquivo = path.normalize(path.join(ROOT, rel));
   // Impede acesso fora da pasta do frontend e ao próprio servidor
   if (!arquivo.startsWith(ROOT + path.sep) || arquivo === __filename) {

@@ -40,10 +40,22 @@
     }
   }
 
-  function entrarCom(usuario) {
-    window.Sessao.salvar(usuario);
+  function entrarCom(login) {
+    window.Sessao.iniciar(login); // guarda o token emitido pela API
     window.location.href = 'feed.html';
   }
+
+  if (window.UI.param('expirada')) {
+    const aviso = document.getElementById('aviso');
+    aviso.textContent = 'Sua sessão expirou. Entre novamente para continuar.';
+    aviso.hidden = false;
+  }
+
+  document.querySelectorAll('[data-demo]').forEach((b) => b.addEventListener('click', () => {
+    formLogin.elements.email.value = b.dataset.demo;
+    formLogin.elements.senha.value = 'arena123';
+    formLogin.elements.senha.focus();
+  }));
 
   formLogin.addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -80,9 +92,8 @@
 
     await window.UI.comCarregamento(formCadastro.querySelector('button'), async () => {
       try {
-        const usuario = await window.Api.usuarios.cadastrar(dados);
-        window.UI.toast('Conta criada! Bem-vindo à Arena+.');
-        entrarCom(usuario);
+        await window.Api.usuarios.cadastrar(dados);
+        entrarCom(await window.Api.auth.login(dados.email, dados.senha));
       } catch (e) {
         if (e.campos) Object.entries(e.campos).forEach(([c, m]) => erroCampo(formCadastro, c, m));
         if (e.status === 409) erroCampo(formCadastro, 'email', e.message);

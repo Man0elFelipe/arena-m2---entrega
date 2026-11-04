@@ -6,10 +6,14 @@
     return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  /** Aceita apenas URLs relativas ou http(s) para evitar javascript: em src/href. */
+  /**
+   * Aceita apenas URLs seguras para src/href: http(s), caminhos relativos simples (img/x.jpg) e
+   * /media/... (arquivos enviados à API, resolvidos para a origem do backend).
+   */
   function urlSegura(url, padrao = '') {
     if (!url) return padrao;
     const u = String(url).trim();
+    if (/^\/media\/[\w.-]+$/.test(u)) return (window.Api ? window.Api.origem : '') + u;
     if (/^(https?:)?\/\//i.test(u) || /^[\w./-]+$/.test(u)) return u;
     return padrao;
   }
@@ -162,6 +166,25 @@
   }
 
   // ---------- Header e navegação ----------
+  let timerMensagens = null;
+
+  function atualizarBadge(total) {
+    const b = document.getElementById('badge-msg');
+    if (!b) return;
+    b.textContent = total > 99 ? '99+' : String(total);
+    b.hidden = !total;
+    const link = document.getElementById('link-mensagens');
+    if (link) link.setAttribute('aria-label', total ? `Mensagens (${total} não lidas)` : 'Mensagens');
+  }
+
+  async function consultarNaoLidas() {
+    if (document.hidden) return;
+    try {
+      const r = await window.Api.conversas.naoLidas();
+      atualizarBadge(r.total);
+    } catch (e) { /* o contador é só um aviso: falha silenciosa */ }
+  }
+
   function montarHeader(paginaAtiva) {
     const u = window.Sessao.usuario();
     const link = (href, icone, rotulo, chave) =>
@@ -174,20 +197,25 @@
         <a href="feed.html" class="marca" aria-label="Arena+ — início">
           <img src="img/logo-arena.png" alt="" width="36" height="36"><span>Arena<b>+</b></span>
         </a>
-        <form class="busca" role="search" action="busca.html">
+        <form class="busca" role="search" action="explorar.html">
           <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-          <label for="busca-global" class="sr-only">Buscar pessoas e comunidades</label>
+          <label for="busca-global" class="sr-only">Buscar pessoas, comunidades e publicações</label>
           <input id="busca-global" name="q" type="search" placeholder="Buscar pessoas, esportes e comunidades" autocomplete="off">
         </form>
         <nav class="nav" aria-label="Navegação principal">
           ${link('feed.html', 'fa-house', 'Início', 'feed')}
+          ${link('explorar.html', 'fa-compass', 'Explorar', 'explorar')}
+          <button type="button" class="nav-link nav-publicar" id="nav-publicar" aria-haspopup="dialog">
+            <i class="fa-solid fa-circle-plus" aria-hidden="true"></i><span>Publicar</span></button>
           ${link('comunidades.html', 'fa-people-group', 'Comunidades', 'comunidades')}
-          ${link('pessoas.html', 'fa-user-group', 'Pessoas', 'pessoas')}
-          ${u ? link('perfil.html?id=' + u.id, 'fa-user', 'Perfil', 'perfil') : ''}
+          ${u ? link('perfil.html', 'fa-user', 'Perfil', 'perfil') : ''}
         </nav>
         ${u ? `<div class="topo-usuario">
-          <a href="busca.html" class="btn-icone busca-movel" aria-label="Buscar"><i class="fa-solid fa-magnifying-glass"></i></a>
-          <a href="perfil.html?id=${u.id}" class="topo-avatar" title="Meu perfil">${avatar(u, 'sm')}</a>
+          <a href="explorar.html" class="btn-icone busca-movel" aria-label="Buscar"><i class="fa-solid fa-magnifying-glass"></i></a>
+          <a href="salvos.html" class="btn-icone ${paginaAtiva === 'salvos' ? 'ativo' : ''}" title="Publicações salvas" aria-label="Publicações salvas"><i class="fa-regular fa-bookmark"></i></a>
+          <a href="mensagens.html" id="link-mensagens" class="btn-icone ${paginaAtiva === 'mensagens' ? 'ativo' : ''}" title="Mensagens" aria-label="Mensagens">
+            <i class="fa-regular fa-comment-dots"></i><span class="badge" id="badge-msg" hidden>0</span></a>
+          <a href="perfil.html" class="topo-avatar" title="${esc(u.nome)} — meu perfil">${avatar(u, 'sm')}</a>
           <button class="btn-icone" id="btn-sair" title="Sair" aria-label="Sair"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
         </div>` : ''}
       </div>`;
@@ -195,6 +223,14 @@
     header.querySelector('#btn-sair')?.addEventListener('click', async () => {
       if (await confirmar('Sair da Arena+?', 'Você precisará entrar novamente para interagir.', 'Sair', false)) window.Sessao.sair();
     });
+    header.querySelector('#nav-publicar').addEventListener('click', () => window.Componentes.abrirPublicar());
+    if (u) {
+      consultarNaoLidas();
+      clearInterval(timerMensagens);
+      timerMensagens = setInterval(consultarNaoLidas, 20000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) consultarNaoLidas(); });
+    }
+    if (window.Coach) window.Coach.montar();
   }
 
   function param(nome) {
@@ -202,7 +238,7 @@
   }
 
   window.UI = {
-    esc, urlSegura, avatar, iniciais, tempoRelativo, dataCompleta, plural, toast, erro,
+    esc, urlSegura, atualizarBadge, avatar, iniciais, tempoRelativo, dataCompleta, plural, toast, erro,
     comCarregamento, carregando, esqueleto, vazio, falha, confirmar, dialogoTemporario, abrirModal, montarHeader, param, AVATAR_PADRAO,
   };
 })();
