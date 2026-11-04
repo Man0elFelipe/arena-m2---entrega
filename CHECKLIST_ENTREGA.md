@@ -1,27 +1,41 @@
 # Checklist de entrega — 09/11/2026
 
-Legenda: ✅ verificado com execução real · 🔶 implementado, falta verificação manual · ⬜ pendente
+Legenda: ✅ verificado nesta etapa com execução real · 🔶 implementado, falta fechar verificação manual · ⬜ pendente.
 
-## Critérios de aceite (02_REQUISITOS.md)
+## API e segurança
 
-| # | Critério | Status | Evidência |
-|---|---|---|---|
-| 1 | O build Java passa | ✅ | `./mvnw test` → 30 testes, BUILD SUCCESS |
-| 2 | A API sobe sem MAMP/MySQL | ✅ | `./mvnw spring-boot:run`, só com H2 |
-| 3 | O H2 persiste entre reinícios | ✅ | Usuário criado antes do restart continua presente depois |
-| 4 | Swagger acessível | ✅ | `/swagger-ui/index.html` (200, 8 grupos) |
-| 5 | As sete entidades estão presentes | ✅ | `entity/` + tabelas no H2 |
-| 6 | Regras de unicidade implementadas | ✅ | Testes: email, curtida, seguimento e membro (409) |
-| 7 | Nenhum hash vazado | ✅ | Teste `cadastroDevolve201SemExporSenhaOuHash` + smoke |
-| 8 | Cadastro, feed e comunidades integrados ao frontend | ✅ | Testado no navegador e conferido na API |
-| 9 | README com execução no macOS | ✅ | `README.md` |
-| 10 | Checklist honesto de testes e pendências | ✅ | `STATUS.md` (seções 4 e 5) |
+| Critério | Situação | Evidência |
+|---|---|---|
+| Java 21 / Spring Boot e suíte | ✅ | `./mvnw test`: 49 testes, 0 falhas |
+| API isolada sem tocar no banco do projeto | ✅ | Porta 8099, H2 e uploads em `/tmp/arena-teste` |
+| Smoke API | ✅ | `scripts/smoke-test-api.sh`: 75 verificações, 0 falhas |
+| Identidade Bearer, autorização e limite | ✅ | testes de integração; rate limit em classe própria; chat de terceiro 403 |
+| Coach sem chave | ✅ | integração e smoke: POST retorna 503 amigável; chamada HTTP mockada em teste unitário |
+| Coach real com OpenAI | 🔶 | não executado. A chave copiada no chat não foi utilizada; requer `OPENAI_API_KEY` ambiente e chave válida/rotacionada. |
+| Eventos | ✅ | integração: criar, duplicidade, lotação, permissão e participantes; smoke HTTP |
+| Swagger/OpenAPI | ✅ | smoke: `/v3/api-docs` e `/swagger-ui/index.html` retornam 200 |
+| Credenciais no Git | ✅ | `git grep -nE 'sk-[A-Za-z0-9_-]{20,}'` sem resultado nesta revisão |
 
-## Antes da apresentação
+## Interface e demonstração
 
-- ✅ Ids do roteiro do `DEMO_SWAGGER.md` conferidos com o banco limpo (Fase B)
-- ✅ Fluxos da interface testados no navegador: editar/excluir post, criar e gerenciar comunidade, entrar/sair, editar perfil, alterar senha, desativar conta, paginação, busca
-- ⬜ Auditoria final (Fase C — Opus)
-- ⬜ Ensaiar a demonstração (cerca de 10 minutos: frontend → Swagger → H2)
-- ⬜ Confirmar o JDK 21 na máquina da apresentação (`java -version`)
-- ⬜ Antes de começar, rodar `./iniciar.sh --limpo` (API + frontend com banco limpo)
+| Fluxo | Situação | Evidência / pendência |
+|---|---|---|
+| Chat com duas contas, não lidas e `?com=ID` | ✅ parcial | Lucas/Marina trocaram mensagens; badge de não lidas e link direto confirmados. Polling simultâneo não foi observado em duas sessões. |
+| Terceiro sem acesso à conversa | ✅ | teste de integração e smoke retornaram 403; Beatriz só viu conversa independente no navegador. |
+| Explorar, abas e filtro | ✅ parcial | quatro abas e filtro por esporte exercitados; carregamento de página seguinte não foi exercitado com volume suficiente. |
+| Salvar/remover e detalhe de publicação | ✅ | navegador; salvar apareceu em Salvos e remover retornou ao estado vazio. |
+| Compartilhar publicação | 🔶 | botão abre ação e mostra feedback; resultado final de Web Share/cópia para clipboard não foi confirmado neste navegador. |
+| Comunidades | ✅ | comunidade temporária criada, recebeu publicação pelo diálogo, foi editada e excluída; Lucas promoveu e rebaixou Marina na comunidade de teste. |
+| Coach responsivo | ✅ parcial | painel e mensagem sem chave confirmados em tela móvel estreita; 375 px exatos pendentes. |
+| Eventos no navegador | ✅ | criação, inscrição, lista de participantes e horário local conferidos. |
+| Persistência após reiniciar API isolada | ✅ | Mesmo banco H2 e uploads em `/tmp/arena-teste`: eventos mantidos na lista e PNG novamente carregado após restart. |
+| Stories e desafios (P3) | ⬜ | não iniciar antes do fechamento completo de A–D. |
+
+## Antes da entrega
+
+- [x] Fazer restart da API isolada e consultar evento e arquivo de mídia que já existiam antes do restart.
+- [ ] Completar manualmente as verificações de tela listadas acima, incluindo 375 px.
+- [ ] Revisar documentos e exemplos antigos para remover payloads de identidade pré-token.
+- [ ] Confirmar a revogação da chave exposta e manter segredo apenas no ambiente.
+- [ ] Revisar `git diff`, executar a suíte e o smoke novamente após qualquer mudança, e criar commits pequenos em português.
+- [ ] Ensaiar apresentação a partir de banco limpo somente na máquina do aluno; não apagar `backend-java/data` durante estes testes.

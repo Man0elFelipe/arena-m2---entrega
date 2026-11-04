@@ -12,19 +12,27 @@
 | Upload de imagem (JPEG/PNG/WebP) e vídeo (MP4), servidos em `/media/**`, persistência após reinício | ✅ Testado no navegador e por `curl` |
 | Perfil esportivo + foto de perfil por upload + consentimentos de privacidade | ✅ Testado no navegador |
 | Publicações salvas, busca com filtros (esporte/cidade), parceiros (`/usuarios/parceiros`) | ✅ API testada · 🔶 telas **escritas, sem teste manual** |
-| Chat privado | ✅ Backend testado (privacidade, não lidas) · 🔶 tela `mensagens.html` **escrita, sem teste no navegador** |
-| Navegação nova, sem usuário fixo | ✅ Login e cabeçalho verificados · 🔶 mobile da nova barra não reverificado |
-| Arena Coach (OpenAI) | ⛔ Não iniciado (`js/coach.js` é um stub; properties prontas) |
-| Eventos esportivos | ⛔ Não iniciado (métodos já previstos em `js/api.js`) |
+| Chat privado | ✅ API e navegador exercitados com Lucas/Marina; contador de não lidas e `?com=ID` confirmados. Atualização periódica é implementada; falta observá-la em duas sessões simultâneas. |
+| Salvos e detalhe de publicação | ✅ Salvar/remover, coleção vazia e `publicacao.html?id=` exercitados no navegador. Compartilhar mostra feedback de abertura; não confirmei destino do Web Share/clipboard no navegador de teste. |
+| Explorar e comunidades | ✅ Abas/filtros, entrar/sair, criar e excluir comunidade temporária, publicar por diálogo, editar e promover/rebaixar moderador exercitados. Carregar mais não apareceu porque a instância tinha menos que o tamanho de página. |
+| Arena Coach | ✅ Implementação backend/frontend, chamada HTTP mockada, limite e 503 sem chave testados. Teste real OpenAI não executado; a chave enviada no chat não foi usada nem armazenada. |
+| Eventos esportivos | ✅ API, integração e navegador: criar evento, inscrever-se e ver participantes. Lotação, duplicidade e permissões cobertas por integração/smoke. |
+| Navegação responsiva | ✅ Barra Coach aparece sem sobrepor controles em viewport móvel estreita (~320 px); falta medir exatamente 375 px. |
 | Stories / desafios (P3) | ⛔ Não iniciado |
-| Documentação do modelo com token (`DEMO_SWAGGER.md`, README, ARQUITETURA, CHECKLIST) | ⛔ **Desatualizada** |
+| Documentação | 🔶 `DEMO_SWAGGER.md`, README e ARQUITETURA atualizados nesta etapa; checklist e revisão final do STATUS pendentes. |
 
 ## 2.2 — Testes realmente executados
 
-- `./mvnw test`: **44 testes, 0 falhas** (integração + `PublicacaoServiceTest` + `SeguimentoServiceTest`).
-- `scripts/smoke-test-api.sh` contra instância isolada: **58 ok, 0 falhas** (executado **antes** do chat; o script ainda não cobre chat).
+- `JAVA_HOME=... PATH=... ./mvnw test`: **49 testes, 0 falhas** (integração, Coach mockado e rate limit).
+- `API=http://localhost:8099 scripts/smoke-test-api.sh`: **75 verificações, 0 falhas** contra instância isolada `/tmp/arena-teste`.
 - Navegador (instância isolada 8099/3099):
   - login real com token;
+  - Mensagens: Lucas enviou e Marina respondeu; cabeçalho mostrou 1 não lida; `?com=2` abriu a conversa. Beatriz abriu conversa independente com Lucas e não viu mensagens de Marina. A permissão 403 de terceiro também foi confirmada no smoke e no teste de integração.
+  - Explorar: abas Publicações/Pessoas/Comunidades/Parceiros, filtro por esporte; salvos adicionar/remover; publicação com `?id=`.
+  - Comunidades: filtro, sair/entrar e diálogo de publicação.
+  - Comunidade temporária: criação, publicação pelo diálogo, edição, exclusão e promoção/rebaixamento de moderador executados.
+  - Coach: painel mobile e estado amigável sem chave.
+  - Eventos: criação, inscrição e participantes; horário local corrigido e conferido.
   - upload e exibição de JPEG, PNG e MP4 (o vídeo reproduz);
   - PDF/GIF/arquivos acima do limite rejeitados no cliente, e arquivo falso `.jpg` rejeitado pelo servidor;
   - edição do perfil esportivo e da foto.
@@ -32,11 +40,11 @@
 
 ## 2.2 — Próxima tarefa exata
 
-Seguir a seção 3 do [CODEX_PROMPT.md](CODEX_PROMPT.md): **A** (testar no navegador o que foi escrito) → **B** (Coach) → **C** (Eventos) → **D** (smoke, docs, testes finais).
+Retomar o fechamento D: verificar breakpoint exatamente em 375 px e confirmar cópia/compartilhamento do link; revisar Swagger/documentação e chave; então revisar o diff e fazer commits pequenos em português. Persistência de eventos/H2 e mídia já foi confirmada após reiniciar a instância isolada. P3 continua fora do escopo até a lista restante estar estável.
 
 ## 2.2 — Notas
 
-- A chave da OpenAI foi colada no chat durante o desenvolvimento. **Ela não foi gravada em nenhum arquivo**, mas deve ser revogada e recriada; use só a variável de ambiente `OPENAI_API_KEY`.
+- Uma chave da OpenAI foi colada no chat. **Ela não foi usada nem gravada**; revogue-a. O app lê somente `OPENAI_API_KEY` do ambiente.
 - As contas de demonstração usam a senha `arena123` (apenas dados de teste do seeder).
 - `iniciar.sh` continua válido (`./iniciar.sh --limpo`). Como o esquema do banco mudou, use `--limpo` na primeira execução desta versão.
 - "Notificações" não existem no backend; não foram simuladas.

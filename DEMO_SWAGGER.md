@@ -1,159 +1,58 @@
-# Roteiro de demonstração: Swagger + Frontend + H2
+# Demonstração Arena+ 2.2 — Swagger e interface
 
-Pré-requisito: a API e o frontend precisam estar rodando. O mais simples é rodar `./iniciar.sh --limpo` na raiz do projeto, que sobe tudo com um banco limpo.
+Pré-requisitos: JDK 21 e Node.js. Inicie a API e o frontend conforme o [README](README.md). Swagger UI: `http://localhost:8080/swagger-ui/index.html`.
 
-> **Dica:** para começar com um banco limpo, pare a API, apague a pasta `backend-java/data` e suba a API de novo. Os dados de demonstração são recriados automaticamente.
+## Autenticação no Swagger
 
-Os ids abaixo partem de um banco recém-criado pelo seeder: 5 usuários, 4 comunidades e 4 publicações. Os novos registros, portanto, recebem os ids 6, 5 e assim por diante. **Sempre use o `id` devolvido na resposta anterior.**
+1. Execute `POST /api/auth/login` com uma conta de demonstração, por exemplo `lucas@arenaplus.dev` / `arena123`.
+2. Copie o valor `token` da resposta (sem aspas).
+3. Clique em **Authorize**, cole o token no campo Bearer e confirme. O Swagger enviará `Authorization: Bearer ...` nos endpoints protegidos.
+4. Para trocar de usuário, use `POST /api/auth/logout`, clique em **Authorize → Logout** e autorize com o novo token.
 
-Swagger: http://localhost:8080/swagger-ui/index.html. Em cada endpoint, clique em **Try it out** → **Execute**.
+Cadastro e login não aceitam usuário autenticado no corpo. Os endpoints identificam a pessoa apenas pelo Bearer token. Não envie `usuarioId`, `seguidorId`, `viewerId` ou IDs equivalentes como identidade; IDs de recurso, como `publicacaoId` e `comunidadeId`, continuam nos payloads quando necessários.
 
----
+## Sequência rápida
 
-## Parte 1: Swagger (CRUD e regras de negócio)
+Use os IDs que a API devolver; não presuma valores fixos, pois o banco pode já ter dados.
 
-### 1. Usuários: `POST /api/usuarios` (esperado: 201)
-
-```json
-{ "nome": "Ana Souza", "email": "ana@demo.dev", "senha": "senha123", "cidade": "São Paulo", "esportePrincipal": "Corrida" }
-```
-
-```json
-{ "nome": "Bruno Alves", "email": "bruno@demo.dev", "senha": "senha123", "esportePrincipal": "Futebol" }
-```
-
-Mostre que a resposta **não tem `senha` nem `senhaHash`**.
-
-**Regra:** reenvie o JSON da Ana. O resultado é **409**, com a mensagem "Já existe um usuário cadastrado com este email".
-
-**Validação:** envie o JSON abaixo. O resultado é **400**, com o detalhe de cada campo em `campos`.
+1. `POST /api/comunidades`:
 
 ```json
-{ "nome": "", "email": "invalido", "senha": "1" }
+{"nome":"Corredores de Rua SP","descricao":"Treinos e provas de corrida.","esporte":"Corrida","imagemUrl":"img/academia.jpeg"}
 ```
 
-### 2. Login: `POST /api/auth/login`
+O criador é associado como moderador automaticamente.
+
+2. `POST /api/membros-comunidade` para entrar com a conta autorizada:
 
 ```json
-{ "email": "ana@demo.dev", "senha": "senha123" }
+{"comunidadeId":1}
 ```
 
-O resultado é 200. Com uma senha errada, o resultado é 401.
+Use uma comunidade existente em vez de repetir esse passo se a conta já for membro. A adesão duplicada devolve 409.
 
-### 3. Comunidade: `POST /api/comunidades` (esperado: 201; use o id da Ana)
+3. `POST /api/publicacoes`:
 
 ```json
-{ "nome": "Corredores de Rua SP", "descricao": "Treinos e provas de corrida em SP.", "esporte": "Corrida", "imagemUrl": "img/academia.jpeg", "criadorId": 6 }
+{"comunidadeId":1,"texto":"Primeiro treino do grupo!"}
 ```
 
-Depois, rode `GET /api/membros-comunidade?comunidadeId=5`: a Ana já aparece como **MODERADOR**.
+O autor é inferido do token. Para publicar em comunidade, a pessoa precisa ser membro.
 
-### 4. Adesão: `POST /api/membros-comunidade` (Bruno)
+4. `POST /api/comentarios` com `{"publicacaoId":1,"texto":"Bora!"}` e `POST /api/curtidas` com `{"publicacaoId":1}`. Repetir a curtida devolve 409.
+5. `GET /api/feed`, `GET /api/comunidades` e `GET /api/usuarios/{id}/perfil` para consultar os dados.
+6. `PUT /api/publicacoes/{id}` atualiza texto; `DELETE /api/publicacoes/{id}` remove a publicação se você for o autor, moderador autorizado ou administrador.
 
-```json
-{ "usuarioId": 7, "comunidadeId": 5 }
-```
+## Chat, Eventos e Coach
 
-O resultado é 201. Repetindo a mesma requisição, o resultado é **409** ("já participa").
+- Chat: `POST /api/conversas` com `{"usuarioId":2}` inicia ou recupera uma conversa com outro usuário. Mensagens são acessíveis apenas aos participantes; terceiros recebem 403.
+- Evento: `POST /api/eventos` com modalidade, título, descrição, cidade, local, data/hora futura e vagas. `POST /api/eventos/{id}/participar` inscreve a conta autorizada; duplicidade e lotação devolvem 409.
+- Coach: consulte `GET /api/coach/status`. Sem `OPENAI_API_KEY`, `POST /api/coach/mensagens` devolve 503 amigável e a API restante continua disponível. O histórico é privado por usuário.
 
-### 5. Publicação: `POST /api/publicacoes`
+## Interface e persistência
 
-```json
-{ "usuarioId": 6, "comunidadeId": 5, "texto": "Primeiro treino do grupo: 8 km no Ibirapuera!", "midiaUrl": "img/academia.jpeg" }
-```
+No frontend, entre com Lucas e Marina em sessões separadas para demonstrar chat e contador de não lidas. A aba **Eventos** em Explorar permite criar e participar. Ações gravam no H2 em arquivo; pare e reinicie a API sem apagar o diretório do banco para conferir persistência.
 
-O resultado é 201, e `tipoMidia` é inferido como `IMAGEM`.
+## Segurança
 
-**Regra:** publique com o usuário `1` na comunidade `5`. O resultado é **400**, porque ele não é membro.
-
-### 6. Comentário: `POST /api/comentarios`
-
-```json
-{ "usuarioId": 7, "publicacaoId": 5, "texto": "Bora! Semana que vem eu vou." }
-```
-
-### 7. Curtida: `POST /api/curtidas`
-
-```json
-{ "usuarioId": 7, "publicacaoId": 5 }
-```
-
-O resultado é 201. Repetindo, o resultado é **409**. Para conferir o total, rode `GET /api/curtidas/contagem?publicacaoId=5` (resultado: `1`).
-
-### 8. Seguimento: `POST /api/seguimentos`
-
-```json
-{ "seguidorId": 7, "seguidoId": 6 }
-```
-
-O resultado é 201. Repetindo, o resultado é **409**.
-
-**Regra:** envie o JSON abaixo. O resultado é **400** ("não pode seguir a si mesmo").
-
-```json
-{ "seguidorId": 6, "seguidoId": 6 }
-```
-
-### 9. Consultas
-
-- `GET /api/usuarios/7/feed`: mostra o post da Ana, porque o Bruno a segue.
-- `GET /api/usuarios/6/perfil`: total de publicações, seguidores e seguindo.
-- `GET /api/publicacoes?comunidadeId=5&viewerId=7`: `curtidaPeloUsuario: true`.
-- `GET /api/seguimentos/seguidores/6`.
-- `GET /api/usuarios/999` → **404**.
-
-### 10. Atualizações
-
-`PUT /api/publicacoes/5` (resultado: `dataEdicao` preenchida):
-
-```json
-{ "texto": "Primeiro treino do grupo: 10 km no Ibirapuera!" }
-```
-
-`PUT /api/usuarios/6`:
-
-```json
-{ "nome": "Ana Souza", "biografia": "Maratonista em formação", "cidade": "Campinas", "esportePrincipal": "Corrida" }
-```
-
-`PATCH /api/membros-comunidade/{id}/papel`:
-
-```json
-{ "papel": "MODERADOR" }
-```
-
-### 11. Exclusões (todas devolvem 204)
-
-- `DELETE /api/curtidas?usuarioId=7&publicacaoId=5`
-- `DELETE /api/seguimentos?seguidorId=7&seguidoId=6`
-- `DELETE /api/membros-comunidade?usuarioId=7&comunidadeId=5`
-- `DELETE /api/publicacoes/5` (remove também os comentários e as curtidas)
-- `DELETE /api/comunidades/5`
-- `DELETE /api/usuarios/7`: exclusão lógica. Em seguida, `GET /api/usuarios/7` mostra `ativo: false`.
-
----
-
-## Parte 2: Frontend (http://localhost:3000)
-
-1. **Criar conta** com nome, email e senha. O app entra direto no feed, que aparece vazio, com o estado "Seu feed está vazio".
-2. Em **Comunidades**, entre em "Futebol de Várzea SP".
-3. No **Início**, escreva um post, escolha a comunidade no seletor e clique em **Publicar**.
-4. **Curta** e **comente** um post. Os contadores são atualizados.
-5. Em **Pessoas**, siga alguém. Volte ao **Início**: os posts dessa pessoa aparecem na aba *Seguindo*.
-6. No **Perfil**, use **Editar perfil** (e, se quiser, **Alterar senha**).
-7. Na **busca** do topo, digite `volei` sem acento: aparecem Beatriz e a comunidade "Vôlei Universitário".
-8. Na comunidade em que você é moderador, use o ícone ao lado de um membro para **torná-lo moderador**.
-9. Mostre a versão **mobile** (DevTools → modo responsivo): a navegação vira uma barra inferior.
-
-## Parte 3: Persistência no H2
-
-1. Abra http://localhost:8080/h2-console. Use a JDBC URL `jdbc:h2:file:./data/arenaplusdb;AUTO_SERVER=TRUE`, o usuário `sa` e deixe a senha em branco.
-2. Rode as consultas abaixo. A coluna `senha_hash` mostra só o hash BCrypt (`$2a$10$...`).
-
-```sql
-SELECT * FROM USUARIO;
-SELECT * FROM PUBLICACAO;
-SELECT * FROM MEMBRO_COMUNIDADE;
-```
-
-3. Pare a API (Ctrl+C) e suba de novo com `./mvnw spring-boot:run`. Os dados continuam lá, e o seeder não roda de novo.
+Não publique tokens, hashes ou chaves. O Coach lê a chave exclusivamente de `OPENAI_API_KEY`; não é necessário para demonstrar o restante do sistema.

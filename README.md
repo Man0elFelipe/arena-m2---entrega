@@ -1,14 +1,14 @@
-# Arena+ 2.0
+# Arena+ 2.2
 
 Rede social esportiva da Arena+ (Projeto Interdisciplinar, FATEC). Esta versão traz:
 
-- uma **API REST em Java 21 / Spring Boot 4** com **H2 em arquivo** e **Swagger UI** (`backend-java/`);
+- uma **API REST em Java 21 / Spring Boot 4** com autenticação Bearer, **H2 em arquivo** e **Swagger UI** (`backend-java/`);
 - um **frontend novo**, integrado à API Java e reaproveitando a identidade visual e as imagens do projeto original (`frontend/`);
 - o **código legado** (PHP + Node/Express + MySQL), preservado só para referência (`legacy/`).
 
 | Pasta | Conteúdo |
 |---|---|
-| `backend-java/` | API Java: 7 entidades, controllers, services, repositories, DTOs, validação e testes |
+| `backend-java/` | API Java: 7 entidades acadêmicas e entidades auxiliares para auth, mídia, chat, Coach, salvos e eventos |
 | `frontend/` | HTML, CSS e JS sem framework, servidos por um servidor Node sem dependências (porta 3000) |
 | `legacy/` | Código original do ZIP (não é usado pela nova versão) |
 | `docs/` | Documentos do projeto (contexto, requisitos, evolução, plano e entidades) |
@@ -19,6 +19,8 @@ Documentos de acompanhamento: [STATUS.md](STATUS.md) · [ARQUITETURA.md](ARQUITE
 ---
 
 ## Como executar no macOS
+
+Os recursos incluem chat privado, eventos esportivos e Arena Coach. Coach usa exclusivamente a variável de ambiente `OPENAI_API_KEY`; sem ela, o restante da aplicação continua funcionando, o painel mostra indisponibilidade e o endpoint de pergunta responde 503. Não grave a chave em arquivos, banco de dados, Git ou frontend.
 
 ### Jeito rápido: um comando só
 
@@ -102,8 +104,8 @@ Depois, abra http://localhost:3000.
 
 ```bash
 cd backend-java
-./mvnw test                   # 30 testes: integração (H2 em memória) + unitários de service
-../scripts/smoke-test-api.sh  # 32 chamadas HTTP reais (com a API rodando)
+./mvnw test                   # 49 testes na revisão de 03/11/2026
+../scripts/smoke-test-api.sh  # smoke HTTP (com a API rodando)
 ```
 
 > O smoke test cria registros no banco de demonstração. Para voltar a um banco limpo, pare a API, apague a pasta `backend-java/data` e suba a API de novo.
@@ -117,12 +119,14 @@ cd backend-java
 | O frontend mostra "Não foi possível conectar à API" | Confira se a API está rodando. Se ela estiver em outra porta, ajuste `frontend/js/config.js`. |
 | Erro de CORS ao abrir o HTML direto do disco (`file://`) | Use `node server.js` (porta 3000). Só origens locais conhecidas são liberadas. |
 
-## Aviso de segurança
+## Segurança
 
 Esta é uma **demonstração acadêmica**:
 
 - as senhas são guardadas apenas como hash BCrypt, e nenhuma resposta expõe a senha ou o hash;
-- **não há autenticação por token**: as operações identificam o usuário pelo `usuarioId` enviado na requisição;
+- operações protegidas exigem token Bearer e usam a identidade extraída do token; campos de ID no corpo identificam recursos e nunca substituem essa identidade;
+- mensagens privadas e histórico do Coach são filtrados pelo usuário autenticado;
+- a chave do Coach vem somente da variável de ambiente `OPENAI_API_KEY`;
 - o Swagger e o console H2 não devem ser expostos publicamente.
 
 Veja as limitações em [STATUS.md](STATUS.md).

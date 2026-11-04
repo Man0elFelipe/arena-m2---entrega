@@ -26,6 +26,8 @@ T=$(date +%s)
 req POST /api/usuarios 201 "{\"nome\":\"Smoke A\",\"email\":\"a$T@smoke.dev\",\"senha\":\"segredo123\",\"esportePrincipal\":\"Corrida\"}"; A=$(jget "['id']")
 echo "$RESP" | grep -qiE 'senha|\$2a\$' && { echo "FAIL hash/senha vazados"; fail=$((fail+1)); }
 req POST /api/usuarios 201 "{\"nome\":\"Smoke B\",\"email\":\"b$T@smoke.dev\",\"senha\":\"segredo123\"}"; Bu=$(jget "['id']")
+req POST /api/usuarios 201 "{\"nome\":\"Smoke C\",\"email\":\"c$T@smoke.dev\",\"senha\":\"segredo123\"}"; Cu=$(jget "['id']")
+req POST /api/usuarios 201 "{\"nome\":\"Smoke D\",\"email\":\"d$T@smoke.dev\",\"senha\":\"segredo123\"}"; Du=$(jget "['id']")
 req POST /api/usuarios 409 "{\"nome\":\"Dup\",\"email\":\"a$T@smoke.dev\",\"senha\":\"segredo123\"}"
 
 # --- autenticação ---
@@ -33,6 +35,35 @@ req GET /api/usuarios 401                       # sem token
 req POST /api/auth/login 401 "{\"email\":\"a$T@smoke.dev\",\"senha\":\"errada\"}"
 login "a$T@smoke.dev"; TA=$TOK
 login "b$T@smoke.dev"; TB=$TOK
+login "c$T@smoke.dev"; TC=$TOK
+login "d$T@smoke.dev"; TD=$TOK
+
+# --- chat privado ---
+TOK=$TA
+req POST /api/conversas 200 "{\"usuarioId\":$Bu}"; CV=$(jget "['id']")
+req POST "/api/conversas/$CV/mensagens" 201 "{\"texto\":\"Smoke: vamos treinar?\"}"
+TOK=$TB
+req GET "/api/conversas/$CV/mensagens" 200
+TOK=$TC
+req GET "/api/conversas/$CV/mensagens" 403 # terceiro sem acesso
+
+# --- Coach sem chave e eventos ---
+TOK=$TA
+req GET /api/coach/status 200
+req POST /api/coach/mensagens 503 "{\"texto\":\"Como aquecer?\"}"
+DATA_EVENTO=$(python3 -c 'from datetime import datetime,timedelta; print((datetime.now()+timedelta(days=2)).replace(microsecond=0).isoformat())')
+req POST /api/eventos 201 "{\"modalidade\":\"Corrida\",\"titulo\":\"Smoke treino\",\"descricao\":\"Rodagem leve\",\"cidade\":\"Santos\",\"local\":\"Parque\",\"dataHora\":\"$DATA_EVENTO\",\"vagasMaximas\":2}"; EV=$(jget "['id']")
+TOK=$TB
+req POST "/api/eventos/$EV/participar" 200
+req POST "/api/eventos/$EV/participar" 409
+TOK=$TC
+req POST "/api/eventos/$EV/participar" 200
+TOK=$TD
+req POST "/api/eventos/$EV/participar" 409 # lotado
+TOK=$TD
+req PATCH "/api/eventos/$EV/cancelar" 403 # não é organizador
+TOK=$TA
+req PATCH "/api/eventos/$EV/cancelar" 200
 
 # --- comunidade, membros, publicação, comentário, curtida, seguimento ---
 TOK=$TA

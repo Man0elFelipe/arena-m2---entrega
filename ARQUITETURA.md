@@ -1,4 +1,4 @@
-# Arena+ 2.0 — Arquitetura
+# Arena+ 2.2 — Arquitetura
 
 ## Visão geral
 
@@ -30,7 +30,7 @@ Pacote base: `br.fatec.arenaplus`.
 
 | Pacote | Responsabilidade |
 |---|---|
-| `entity` | 7 entidades JPA + enums `TipoPerfil`, `TipoMidia` e `PapelMembro` (`@Enumerated(STRING)`) |
+| `entity` | 7 entidades acadêmicas + entidades auxiliares de mídia, tokens, salvos, chat, Coach e eventos |
 | `repository` | Spring Data JPA, com consultas JPQL de busca e feed |
 | `service` | Regras de negócio e transações |
 | `controller` | Endpoints REST e anotações OpenAPI |
@@ -49,6 +49,10 @@ Pacote base: `br.fatec.arenaplus`.
 | `seguimento` | `seguidor_id`, `seguido_id → usuario` | `uk_seguimento_par` |
 | `comunidade` | `criador_id → usuario` | — |
 | `membro_comunidade` | `usuario_id`, `comunidade_id` | `uk_membro_usuario_comunidade` |
+| `conversa` / `mensagem` | participantes e remetente → `usuario` | par de participantes |
+| `mensagem_coach` | `usuario_id → usuario` | — |
+| `evento` | organizador → `usuario` | — |
+| `participacao_evento` | evento e usuário | `uk_evento_usuario` |
 
 As relações são `@ManyToOne(LAZY)` no JPA. No JSON, elas viram ids simples (`usuarioId`, `comunidadeId`...) mais resumos (`autor`, `seguidor`...), sem recursão.
 
@@ -78,16 +82,27 @@ As relações são `@ManyToOne(LAZY)` no JPA. No JSON, elas viram ids simples (`
 |---|---|
 | Auth | `POST /api/auth/login` |
 | Usuários | `POST /api/usuarios` · `GET /api/usuarios?busca=&pagina=&tamanho=` · `GET /{id}` · `GET /{id}/perfil` · `GET /{id}/feed` · `PUT /{id}` · `PATCH /{id}/senha` · `DELETE /{id}` · `PATCH /{id}/reativar` |
-| Publicações | `POST /api/publicacoes` · `GET /api/publicacoes?usuarioId=&comunidadeId=&viewerId=` · `GET /{id}` · `PUT /{id}` · `DELETE /{id}` |
+| Publicações | `POST /api/publicacoes` · `GET /api/publicacoes?usuarioId=&comunidadeId=` · `GET /{id}` · `PUT /{id}` · `DELETE /{id}` |
 | Comentários | `POST /api/comentarios` · `GET /api/comentarios?publicacaoId=` · `GET /{id}` · `PUT /{id}` · `DELETE /{id}` |
-| Curtidas | `POST /api/curtidas` · `GET /api/curtidas?publicacaoId=` · `GET /contagem?publicacaoId=` · `DELETE /{id}` · `DELETE ?usuarioId=&publicacaoId=` |
-| Seguimentos | `POST /api/seguimentos` · `GET /seguidores/{id}` · `GET /seguindo/{id}` · `GET /verificar` · `GET /{id}` · `DELETE /{id}` · `DELETE ?seguidorId=&seguidoId=` |
+| Curtidas | `POST /api/curtidas` · `GET /api/curtidas?publicacaoId=` · `GET /contagem?publicacaoId=` · `DELETE /{id}` · `DELETE ?publicacaoId=` |
+| Seguimentos | `POST /api/seguimentos` · `GET /seguidores/{id}` · `GET /seguindo/{id}` · `GET /verificar?seguidoId=` · `GET /{id}` · `DELETE /{id}` · `DELETE ?seguidoId=` |
 | Comunidades | `POST /api/comunidades` · `GET /api/comunidades?busca=&esporte=` · `GET /{id}` · `PUT /{id}` · `DELETE /{id}` |
-| Membros | `POST /api/membros-comunidade` · `GET ?comunidadeId=&usuarioId=` · `GET /{id}` · `PATCH /{id}/papel` · `DELETE /{id}` · `DELETE ?usuarioId=&comunidadeId=` |
+| Membros | `POST /api/membros-comunidade` · `GET ?comunidadeId=` · `GET /{id}` · `PATCH /{id}/papel` · `DELETE /{id}` · `DELETE ?comunidadeId=` |
+| Chat | `GET|POST /api/conversas` · `GET|POST /{id}/mensagens` · `GET /nao-lidas` |
+| Coach | `GET /api/coach/status` · `GET|POST|DELETE /api/coach/mensagens` |
+| Eventos | `POST /api/eventos` · `GET /api/eventos` · `GET /{id}` · `POST|DELETE /{id}/participar` · `GET /{id}/participantes` · `PATCH /{id}/cancelar|encerrar` |
 
 Listas paginadas devolvem `{conteudo, pagina, tamanho, totalElementos, totalPaginas, ultima}`, com tamanho máximo de 50 itens.
 
 Erros seguem sempre o formato `{timestamp, status, erro, mensagem, caminho, campos}`.
+
+## Autenticação, Coach e Eventos (Fase 2.2)
+
+`POST /api/auth/login` emite um token opaco. O `AuthInterceptor` valida o Bearer e injeta `UsuarioAutenticado`; nos endpoints protegidos, esse principal é a única fonte de identidade. IDs enviados nos corpos indicam recursos relacionados (por exemplo, publicação ou comunidade), nunca o usuário que está agindo. Proprietários, moderadores e administradores são validados nos services.
+
+O chat privado verifica os dois participantes em cada leitura e escrita, inclusive para administradores. Contador e polling usam HTTP periódico, sem WebSockets. Coach grava perguntas e respostas ligadas ao usuário autenticado; a chamada OpenAI usa `java.net.http.HttpClient`, respeita timeout e limites configurados, e lê a chave exclusivamente de `OPENAI_API_KEY`. Sem chave, o status sinaliza indisponibilidade e POST de pergunta retorna 503.
+
+Eventos guardam organizador, estado e capacidade; as participações têm restrição única por evento/usuário. A inscrição usa bloqueio pessimista no evento e devolve 409 para duplicidade ou lotação. Apenas organizador ou administrador pode cancelar/encerrar.
 
 ## Frontend (`frontend/`)
 
@@ -95,46 +110,32 @@ Erros seguem sempre o formato `{timestamp, status, erro, mensagem, caminho, camp
 |---|---|
 | `js/config.js` | `API_BASE_URL` (único lugar com a URL da API) |
 | `js/api.js` | Cliente HTTP centralizado; converte erros em `ApiError(status, mensagem, campos)` |
-| `js/session.js` | Guarda `{id, nome, ...}` do usuário logado no `localStorage` (demonstração; não há token) |
+| `js/session.js` | Guarda o usuário público da sessão e o token Bearer no `localStorage` |
 | `js/ui.js` | Escape de HTML, URLs seguras, plural, toasts, diálogos, loading em botões, *skeleton*, estados de lista e header |
 | `js/components.js` | Card de publicação (curtir otimista, comentários, editar e excluir) e card de comunidade |
 | `js/pages/*.js` | Um script por página |
 | `server.js` | Servidor estático com proteção contra *path traversal* |
 
-### Matriz de telas: legado → Java
+### Mapa atual de telas e endpoints
 
-| Tela | Ação | Endpoint legado (Node/PHP) | Endpoint Java | Status |
-|---|---|---|---|---|
-| `index.html` | Login | `POST /login` (sessão) | `POST /api/auth/login` | Testado no navegador |
-| `index.html` | Cadastro | `POST /login` (`acao=cadastro`) | `POST /api/usuarios` | Testado (sucesso, 409, validação) |
-| `feed.html` | Feed "Seguindo" | `GET /api/posts?acao=feed` | `GET /api/usuarios/{id}/feed` | Testado |
-| `feed.html` | Feed "Explorar" | — | `GET /api/publicacoes?viewerId=` | Implementado |
-| `feed.html` | Publicar (geral ou comunidade) | `POST /api/posts` (FormData + upload) | `POST /api/publicacoes` (URL de mídia) | Testado e persistido |
-| `feed.html` | Curtir / descurtir | `POST /api/posts acao=curtir` | `POST`/`DELETE /api/curtidas` | Testado e persistido |
-| `feed.html` | Comentar | `POST /api/posts acao=comentar` | `POST /api/comentarios` | Testado e persistido |
-| `feed.html` | Editar / excluir post | — | `PUT`/`DELETE /api/publicacoes/{id}` | Testado no navegador |
-| `feed.html` | Sugestões para seguir | `GET /api/follow?acao=sugestoes` | `GET /api/usuarios` + `GET /seguindo/{id}` | Implementado |
-| `perfil.html` | Perfil + estatísticas | `GET /api/usuario` | `GET /api/usuarios/{id}/perfil` | Testado (visual) |
-| `perfil.html` | Seguir / deixar de seguir | `POST /api/follow` | `POST`/`DELETE /api/seguimentos` | Testado no navegador |
-| `perfil.html` | Editar perfil / desativar conta | `POST /api/usuario` | `PUT`/`DELETE /api/usuarios/{id}` | Testado no navegador |
-| `comunidades.html` | Listar / buscar / filtrar | `GET /api/communities?acao=listar` | `GET /api/comunidades` | Testado (visual) |
-| `comunidades.html` | Criar comunidade | `POST /api/communities` | `POST /api/comunidades` | Testado no navegador |
-| `comunidades.html` | Entrar / sair | `POST /api/communities` | `POST`/`DELETE /api/membros-comunidade` | Testado no navegador |
-| `comunidade.html` | Detalhe, membros e posts | `/communities/:id` | `GET /api/comunidades/{id}` + membros + publicações | Testado (visual) |
-| `comunidade.html` | Editar / excluir (moderador) | `/communities/:id/admin` | `PUT`/`DELETE /api/comunidades/{id}` | Editar testado no navegador; excluir testado na API |
-| `pessoas.html` | Buscar pessoas | `GET /api/search` | `GET /api/usuarios?busca=` | Testado (visual, mobile) |
-| `busca.html` | Busca global (pessoas + comunidades, sem acento) | `GET /api/search` | `GET /api/usuarios?busca=` + `GET /api/comunidades?busca=` | Testado no navegador |
-| `perfil.html` | Alterar senha | `config.php` | `PATCH /api/usuarios/{id}/senha` | Testado no navegador |
-| `comunidade.html` | Promover/rebaixar moderador | `comunidade_admin.php` | `PATCH /api/membros-comunidade/{id}/papel` | Testado no navegador |
-| — | Arena Coach (IA), chat, notificações, admin, upload de arquivos | Node/PHP + OpenAI | — | **Fora do escopo P0/P1** (ainda só no legado) |
+| Tela | Ações principais | Integração | Verificação nesta etapa |
+|---|---|---|---|
+| `index.html` | Login e cadastro | `/api/auth/login`, `/api/usuarios` | Login real no navegador; validações cobertas por integração |
+| `feed.html` | Feed, publicar, curtir, comentar | `/api/feed`, `/api/publicacoes`, `/api/curtidas`, `/api/comentarios` | Feed renderizado; operações cobertas por suíte/smoke |
+| `explorar.html` | Posts, pessoas, comunidades, parceiros e eventos | `/api/publicacoes`, `/api/usuarios`, `/api/comunidades`, `/api/usuarios/parceiros`, `/api/eventos` | Abas/filtro e criação/inscrição de evento verificadas; carregar mais pendente |
+| `salvos.html` | Ver e remover salvos | `/api/salvos` | Adicionar, listar e remover verificados no navegador |
+| `publicacao.html` | Detalhe, comentários e compartilhar link | `/api/publicacoes/{id}`, `/api/comentarios` | `?id=` verificado; share sem retorno visual conclusivo |
+| `mensagens.html` | Conversas, não lidas e atualização periódica | `/api/conversas` | Duas contas e `?com=ID` verificados; polling simultâneo pendente |
+| `comunidades.html`, `comunidade.html` | Busca, entrar/sair, publicar e gerenciar | `/api/comunidades`, `/api/membros-comunidade`, `/api/publicacoes` | Filtro, adesão e diálogo de publicação vistos; moderação e CRUD manual pendentes |
+| Todas as páginas autenticadas | Painel Arena Coach | `/api/coach/status`, `/api/coach/mensagens` | Estado sem chave confirmado; API HTTP mockada nos testes; sem chamada real à OpenAI |
 
 ## Decisões técnicas
 
 1. **Spring Boot 4.0.9** (e não 3.x): é a linha mais estável disponível no Spring Initializr em 11/2026. O springdoc-openapi 3.0.3 é a versão compatível com o Boot 4.
-2. **`spring-security-crypto` em vez de Spring Security completo**: o projeto só precisa do BCrypt; não há filtros nem login HTTP. Isso evita configurar segurança pela metade.
+2. **Interceptor Bearer com principal próprio**: o token é validado pelo `AuthInterceptor`; `UsuarioAutenticado` injeta a identidade nos controllers. `spring-security-crypto` fornece BCrypt.
 3. **Perfil `local` como padrão**: liga o console H2 e o seeder. Os testes usam H2 em memória (`src/test/resources/application.properties`).
 4. **`ddl-auto=update`**: adequado ao uso acadêmico. Para produção, usar Flyway (P2).
-5. **Mídia como URL** (sem upload): atende à regra de "até uma mídia" sem a complexidade de multipart e armazenamento. O upload fica para depois.
+5. **Mídia por upload validado**: imagens e vídeos passam por validação de conteúdo e limites; arquivos ficam no diretório configurado e são servidos em `/media/**`. A publicação referencia a URL da mídia.
 6. **Busca sem acento:** o termo é normalizado em Java (`Busca.normalizar`) e as colunas com `TRANSLATE` no SQL. As tabelas de acentos chegam à consulta por SpEL, sem mudar a assinatura dos repositórios. `TRANSLATE` existe no H2 e no PostgreSQL.
 7. **Diálogos sem depender do evento `close`:** a confirmação resolve no clique ou no Esc. O evento `close` é assíncrono e pode ser adiado em abas em segundo plano.
 8. **Contadores calculados por publicação** (consultas `count`): simples e corretos para o volume acadêmico. Com volume maior, otimizar com *projections* (N+1 conhecido).

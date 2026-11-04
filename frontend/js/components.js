@@ -103,7 +103,9 @@
     const url = linkDaPublicacao(id);
     if (navigator.share) {
       try {
+        toast('Abrindo opções de compartilhamento…', 'info');
         await navigator.share({ title: 'Arena+', text: String(texto || '').slice(0, 120), url });
+        toast('Link compartilhado!');
         return;
       } catch (e) {
         if (e && e.name === 'AbortError') return; // o usuário fechou o painel de compartilhamento
