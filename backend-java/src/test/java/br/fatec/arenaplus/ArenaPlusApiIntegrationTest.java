@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** Testes de integração ponta a ponta: controller -> service -> JPA -> H2 em memória, com autenticação por token. */
 @SpringBootTest
 @AutoConfigureMockMvc
+@TestPropertySource(properties = "arenaplus.coach.openai-api-key=")
 class ArenaPlusApiIntegrationTest {
 
     private static final AtomicInteger SEQ = new AtomicInteger();
@@ -118,6 +120,33 @@ class ArenaPlusApiIntegrationTest {
         System.arraycopy("ftyp".getBytes(), 0, b, 4, 4);
         System.arraycopy(marca.getBytes(), 0, b, 8, 4);
         return b;
+    }
+
+    @Test
+    void eventosRespeitamInscricaoVagasEPermissoes() throws Exception {
+        U organizador = novoUsuario("Organizador Evento");
+        U atleta = novoUsuario("Atleta Evento");
+        U terceiro = novoUsuario("Terceiro Evento");
+        U quarto = novoUsuario("Quarto Evento");
+        String quando = java.time.LocalDateTime.now().plusDays(2).withNano(0).toString();
+        long evento = id(doPost(organizador.token(), "/api/eventos", """
+                {"modalidade":"Corrida","titulo":"Treino no parque","descricao":"Rodagem leve","cidade":"Sao Paulo","local":"Parque Central","dataHora":"%s","vagasMaximas":2}
+                """.formatted(quando)).andExpect(status().isCreated()));
+        doPost(atleta.token(), "/api/eventos/" + evento + "/participar", null).andExpect(status().isOk());
+        doPost(atleta.token(), "/api/eventos/" + evento + "/participar", null).andExpect(status().isConflict());
+        doPost(terceiro.token(), "/api/eventos/" + evento + "/participar", null).andExpect(status().isOk());
+        doPost(quarto.token(), "/api/eventos/" + evento + "/participar", null).andExpect(status().isConflict());
+        doPatch(terceiro.token(), "/api/eventos/" + evento + "/cancelar", "{}").andExpect(status().isForbidden());
+        doGet(atleta.token(), "/api/eventos/" + evento).andExpect(status().isOk()).andExpect(jsonPath("$.participantes", is(2)));
+        doGet(atleta.token(), "/api/eventos/" + evento + "/participantes").andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(2)));
+    }
+
+    @Test
+    void coachSemChaveRetorna503Amigavel() throws Exception {
+        U atleta = novoUsuario("Coach sem chave");
+        doGet(atleta.token(), "/api/coach/status").andExpect(status().isOk()).andExpect(jsonPath("$.disponivel", is(false)));
+        doPost(atleta.token(), "/api/coach/mensagens", "{\"texto\":\"Como aquecer?\"}")
+                .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.mensagem", containsString("temporariamente indisponível")));
     }
 
     private ResultActions upload(String token, String nome, String contentType, byte[] conteudo) throws Exception {

@@ -44,7 +44,23 @@
       vazio: () => vazio('fa-handshake', 'Nenhum parceiro encontrado',
         'Só aparecem atletas que ativaram “Encontrar parceiros” no perfil. Ative a sua opção em Perfil → Editar perfil.'),
     },
+    eventos: {
+      mostrar: ['q', 'esporte', 'cidade'], classe: 'grade-eventos', tamanho: 10,
+      buscar: (f, p) => window.Api.eventos.listar({ busca: f.q, modalidade: f.esporte, cidade: f.cidade, pagina: p, tamanho: 10 }),
+      item: eventoHtml,
+      vazio: () => vazio('fa-calendar-xmark', 'Nenhum evento encontrado', 'Crie um evento esportivo ou ajuste os filtros.'),
+    },
   };
+
+  function eventoHtml(e) { return `<article class="card evento-card"><div class="evento-topo"><span class="tag">${esc(e.modalidade)}</span><span class="tag">${esc(e.estado)}</span></div><h2>${esc(e.titulo)}</h2><p>${esc(e.descricao)}</p><p><strong>${esc(e.cidade)}</strong> · ${esc(e.local)}</p><p>${esc(new Date(e.dataHora).toLocaleString('pt-BR',{dateStyle:'medium',timeStyle:'short'}))}</p><p>${e.participantes} / ${e.vagasMaximas} vagas · organizado por ${esc(e.organizador)}</p><div class="evento-acoes"><button class="btn btn-secundario btn-pequeno" data-evento-detalhe="${e.id}">Ver participantes</button>${e.estado==='ABERTO'?`<button class="btn ${e.participando?'btn-secundario':'btn-primario'} btn-pequeno" data-evento-participar="${e.id}" data-participa="${e.participando}">${e.participando?'Cancelar inscrição':'Participar'}</button>`:''}${e.organizadorId===eu.id&&e.estado==='ABERTO'?`<button class="btn btn-secundario btn-pequeno" data-evento-encerrar="${e.id}">Encerrar</button><button class="btn btn-secundario btn-pequeno" data-evento-cancelar="${e.id}">Cancelar evento</button>`:''}</div></article>`; }
+
+  function abrirCriacaoEvento() {
+    const {dlg,fechar}=window.UI.dialogoTemporario(`<form id="form-evento" class="form-dialogo"><h2>Criar evento</h2><label class="campo"><span>Modalidade *</span><input name="modalidade" required maxlength="80"></label><label class="campo"><span>Título *</span><input name="titulo" required maxlength="120"></label><label class="campo"><span>Descrição *</span><textarea name="descricao" required maxlength="1500"></textarea></label><div class="linha-campos"><label class="campo"><span>Cidade *</span><input name="cidade" required maxlength="100"></label><label class="campo"><span>Local *</span><input name="local" required maxlength="160"></label></div><label class="campo"><span>Data e hora *</span><input name="dataHora" type="datetime-local" required></label><label class="campo"><span>Vagas (2 a 500) *</span><input name="vagasMaximas" type="number" min="2" max="500" value="10" required></label><div class="dialogo-acoes"><button type="button" class="btn btn-secundario" data-cancelar>Cancelar</button><button class="btn btn-primario">Criar evento</button></div></form>`);
+    dlg.querySelector('[data-cancelar]').onclick=fechar;
+    dlg.querySelector('form').addEventListener('submit',async ev=>{ev.preventDefault();const f=new FormData(ev.currentTarget),dados=Object.fromEntries(f);dados.vagasMaximas=Number(dados.vagasMaximas);try{await window.Api.eventos.criar(dados);fechar();toast('Evento criado.');await buscar(true);}catch(e){erro(e);}});
+  }
+
+  async function detalheEvento(id){try{const [e,pessoas]=await Promise.all([window.Api.eventos.buscar(id),window.Api.eventos.participantes(id)]);const lista=pessoas.length?pessoas.map(p=>`<li>${esc(p.nome)} · ${esc(p.esportePrincipal||'Atleta')}</li>`).join(''):'<li>Ninguém inscrito ainda.</li>';const {dlg,fechar}=window.UI.dialogoTemporario(`<section><h2>${esc(e.titulo)}</h2><p>${esc(e.descricao)}</p><p>${esc(e.cidade)} · ${esc(e.local)}</p><h3>Participantes (${pessoas.length}/${e.vagasMaximas})</h3><ul>${lista}</ul><div class="dialogo-acoes"><button class="btn btn-primario" data-fechar>Fechar</button></div></section>`);dlg.querySelector('[data-fechar]').onclick=fechar;}catch(e){erro(e);}}
 
   async function carregarRelacoes() {
     try {
@@ -103,6 +119,13 @@
   abasEl.addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-aba]');
     if (b && b.dataset.aba !== aba) trocarAba(b.dataset.aba);
+  });
+  document.getElementById('criar-evento')?.addEventListener('click', abrirCriacaoEvento);
+  alvo.addEventListener('click', async ev=>{
+    const detalhe=ev.target.closest('[data-evento-detalhe]');if(detalhe)return detalheEvento(Number(detalhe.dataset.eventoDetalhe));
+    const participar=ev.target.closest('[data-evento-participar]');if(participar){const id=Number(participar.dataset.eventoParticipar),ja=participar.dataset.participa==='true';if(ja&&!(await window.UI.confirmar('Cancelar inscrição?','Você poderá se inscrever novamente enquanto houver vagas.','Cancelar inscrição',false)))return;try{if(ja)await window.Api.eventos.cancelarParticipacao(id);else await window.Api.eventos.participar(id);toast(ja?'Inscrição cancelada.':'Inscrição confirmada.');buscar(true);}catch(e){erro(e);}return;}
+    const encerrar=ev.target.closest('[data-evento-encerrar]');if(encerrar){if(await window.UI.confirmar('Encerrar evento?','Novas inscrições serão bloqueadas.','Encerrar'))try{await window.Api.eventos.encerrar(encerrar.dataset.eventoEncerrar);buscar(true);}catch(e){erro(e);}return;}
+    const cancelar=ev.target.closest('[data-evento-cancelar]');if(cancelar&&await window.UI.confirmar('Cancelar evento?','O evento ficará marcado como cancelado.','Cancelar evento',true))try{await window.Api.eventos.cancelar(cancelar.dataset.eventoCancelar);buscar(true);}catch(e){erro(e);}
   });
 
   let timer;
