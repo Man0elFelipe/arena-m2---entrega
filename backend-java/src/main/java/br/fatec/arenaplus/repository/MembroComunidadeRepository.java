@@ -21,7 +21,7 @@ public interface MembroComunidadeRepository extends JpaRepository<MembroComunida
 
     long countByComunidadeId(Long comunidadeId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from MembroComunidade m where m.comunidade.id = :comunidadeId")
     int deleteByComunidadeId(@Param("comunidadeId") Long comunidadeId);
 }

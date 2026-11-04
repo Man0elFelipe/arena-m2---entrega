@@ -7,6 +7,7 @@ import br.fatec.arenaplus.dto.PaginaResponse;
 import br.fatec.arenaplus.service.ComunidadeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import br.fatec.arenaplus.security.UsuarioAutenticado;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -26,8 +27,8 @@ public class ComunidadeController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Criar comunidade", description = "O criador entra automaticamente como MODERADOR.")
-    public ComunidadeResponse criar(@Valid @RequestBody ComunidadeRequest req) {
-        return service.criar(req);
+    public ComunidadeResponse criar(@Valid @RequestBody ComunidadeRequest req, UsuarioAutenticado atual) {
+        return service.criar(atual.id(), req);
     }
 
     @GetMapping
@@ -46,16 +47,16 @@ public class ComunidadeController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar comunidade")
-    public ComunidadeResponse atualizar(@PathVariable Long id, @Valid @RequestBody ComunidadeUpdateRequest req) {
-        return service.atualizar(id, req);
+    @Operation(summary = "Atualizar comunidade (moderador ou admin)")
+    public ComunidadeResponse atualizar(@PathVariable Long id, @Valid @RequestBody ComunidadeUpdateRequest req, UsuarioAutenticado atual) {
+        return service.atualizar(id, req, atual);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Excluir comunidade",
+    @Operation(summary = "Excluir comunidade (moderador ou admin)",
             description = "Remove os vínculos de membros. Publicações são preservadas e desvinculadas (comunidadeId = null).")
-    public void excluir(@PathVariable Long id) {
-        service.excluir(id);
+    public void excluir(@PathVariable Long id, UsuarioAutenticado atual) {
+        service.excluir(id, atual);
     }
 }

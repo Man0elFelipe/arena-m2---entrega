@@ -7,7 +7,9 @@ import br.fatec.arenaplus.entity.Curtida;
 import br.fatec.arenaplus.entity.Publicacao;
 import br.fatec.arenaplus.entity.Usuario;
 import br.fatec.arenaplus.exception.ConflitoException;
+import br.fatec.arenaplus.exception.AcessoNegadoException;
 import br.fatec.arenaplus.exception.RecursoNaoEncontradoException;
+import br.fatec.arenaplus.security.UsuarioAutenticado;
 import br.fatec.arenaplus.repository.CurtidaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,8 +30,8 @@ public class CurtidaService {
         this.publicacaoService = publicacaoService;
     }
 
-    public CurtidaResponse curtir(CurtidaRequest req) {
-        Usuario usuario = usuarioService.obterAtivo(req.usuarioId());
+    public CurtidaResponse curtir(Long usuarioId, CurtidaRequest req) {
+        Usuario usuario = usuarioService.obterAtivo(usuarioId);
         Publicacao publicacao = publicacaoService.obter(req.publicacaoId());
         if (curtidas.existsByUsuarioIdAndPublicacaoId(usuario.getId(), publicacao.getId())) {
             throw new ConflitoException("Usuário já curtiu esta publicação.");
@@ -53,9 +55,12 @@ public class CurtidaService {
         return new ContagemResponse(publicacaoId, curtidas.countByPublicacaoId(publicacaoId));
     }
 
-    public void remover(Long id) {
-        curtidas.delete(curtidas.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Curtida", id)));
+    public void remover(Long id, UsuarioAutenticado atual) {
+        Curtida c = curtidas.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Curtida", id));
+        if (!c.getUsuario().getId().equals(atual.id()) && !atual.admin()) {
+            throw new AcessoNegadoException("Você só pode remover as suas próprias curtidas.");
+        }
+        curtidas.delete(c);
     }
 
     /** Descurtir pelo par usuário/publicação (usado pelo frontend). */

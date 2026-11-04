@@ -37,7 +37,7 @@ class SeguimentoServiceTest {
 
     @Test
     void naoPermiteSeguirASiMesmoSemConsultarOBanco() {
-        assertThatThrownBy(() -> service.seguir(new SeguimentoRequest(1L, 1L)))
+        assertThatThrownBy(() -> service.seguir(1L, new SeguimentoRequest(1L)))
                 .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("si mesmo");
         verifyNoInteractions(seguimentos, usuarioService);
@@ -49,7 +49,7 @@ class SeguimentoServiceTest {
         when(usuarioService.obterAtivo(2L)).thenReturn(usuario(2));
         when(seguimentos.existsBySeguidorIdAndSeguidoId(1L, 2L)).thenReturn(true);
 
-        assertThatThrownBy(() -> service.seguir(new SeguimentoRequest(1L, 2L)))
+        assertThatThrownBy(() -> service.seguir(1L, new SeguimentoRequest(2L)))
                 .isInstanceOf(ConflitoException.class);
         verify(seguimentos, never()).save(any());
     }
@@ -59,7 +59,7 @@ class SeguimentoServiceTest {
         when(usuarioService.obterAtivo(1L)).thenReturn(usuario(1));
         when(usuarioService.obterAtivo(2L)).thenThrow(new RegraNegocioException("Usuário 2 está desativado."));
 
-        assertThatThrownBy(() -> service.seguir(new SeguimentoRequest(1L, 2L)))
+        assertThatThrownBy(() -> service.seguir(1L, new SeguimentoRequest(2L)))
                 .isInstanceOf(RegraNegocioException.class);
         verify(seguimentos, never()).save(any());
     }

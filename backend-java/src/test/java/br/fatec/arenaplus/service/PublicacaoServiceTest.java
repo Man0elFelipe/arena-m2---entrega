@@ -37,6 +37,8 @@ class PublicacaoServiceTest {
     @Mock UsuarioService usuarioService;
     @Mock ComunidadeService comunidadeService;
     @Mock MembroComunidadeService membroService;
+    @Mock MidiaService midiaService;
+    @Mock br.fatec.arenaplus.repository.PublicacaoSalvaRepository salvos;
 
     @InjectMocks
     PublicacaoService service;
@@ -62,20 +64,20 @@ class PublicacaoServiceTest {
             "img/animacao.gif, IMAGEM"
     })
     void infereTipoDeMidiaPelaExtensao(String url, TipoMidia esperado) {
-        PublicacaoResponse r = service.criar(new PublicacaoRequest(1L, null, "Treino", url, null));
+        PublicacaoResponse r = service.criar(1L, new PublicacaoRequest(null, "Treino", url, null));
         assertThat(r.tipoMidia()).isEqualTo(esperado);
         assertThat(r.midiaUrl()).isEqualTo(url);
     }
 
     @Test
     void tipoInformadoPrevaleceSobreExtensao() {
-        PublicacaoResponse r = service.criar(new PublicacaoRequest(1L, null, "Treino", "midia/arquivo", TipoMidia.VIDEO));
+        PublicacaoResponse r = service.criar(1L, new PublicacaoRequest(null, "Treino", "midia/arquivo", TipoMidia.VIDEO));
         assertThat(r.tipoMidia()).isEqualTo(TipoMidia.VIDEO);
     }
 
     @Test
     void tipoMidiaSemUrlEhInvalido() {
-        assertThatThrownBy(() -> service.criar(new PublicacaoRequest(1L, null, "Treino", "  ", TipoMidia.IMAGEM)))
+        assertThatThrownBy(() -> service.criar(1L, new PublicacaoRequest(null, "Treino", "  ", TipoMidia.IMAGEM)))
                 .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("tipoMidia");
         verify(publicacoes, never()).save(any());
@@ -83,7 +85,7 @@ class PublicacaoServiceTest {
 
     @Test
     void textoEhNormalizadoESemMidiaFicaNulo() {
-        PublicacaoResponse r = service.criar(new PublicacaoRequest(1L, null, "  Bom treino!  ", "", null));
+        PublicacaoResponse r = service.criar(1L, new PublicacaoRequest(null, "  Bom treino!  ", "", null));
         assertThat(r.texto()).isEqualTo("Bom treino!");
         assertThat(r.midiaUrl()).isNull();
         assertThat(r.tipoMidia()).isNull();
@@ -96,7 +98,7 @@ class PublicacaoServiceTest {
         when(comunidadeService.obter(5L)).thenReturn(c);
         when(membroService.participa(1L, 5L)).thenReturn(false);
 
-        assertThatThrownBy(() -> service.criar(new PublicacaoRequest(1L, 5L, "Oi", null, null)))
+        assertThatThrownBy(() -> service.criar(1L, new PublicacaoRequest(5L, "Oi", null, null)))
                 .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("participar");
         verify(publicacoes, never()).save(any());

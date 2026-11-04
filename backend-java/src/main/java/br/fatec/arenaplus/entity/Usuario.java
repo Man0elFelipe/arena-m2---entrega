@@ -41,6 +41,31 @@ public class Usuario {
     @Column(nullable = false)
     private Boolean ativo = Boolean.TRUE;
 
+    // ----- Perfil esportivo (todos opcionais) -----
+    @Column(name = "modalidades_favoritas", length = 300)
+    private String modalidadesFavoritas;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "nivel_experiencia", length = 20)
+    private NivelExperiencia nivelExperiencia;
+
+    @Column(length = 500)
+    private String objetivos;
+
+    @Column(length = 300)
+    private String disponibilidade;
+
+    @Column(length = 1000)
+    private String conquistas;
+
+    /** Consentimento: só aparece em "Encontrar parceiros" quem marcar. */
+    @Column(name = "procura_parceiros", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE NOT NULL")
+    private Boolean procuraParceiros = Boolean.FALSE;
+
+    /** Consentimento: a disponibilidade só é exibida a outros usuários se marcado. */
+    @Column(name = "mostrar_disponibilidade", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE NOT NULL")
+    private Boolean mostrarDisponibilidade = Boolean.FALSE;
+
     @Column(name = "data_cadastro", nullable = false, updatable = false)
     private LocalDateTime dataCadastro;
 
@@ -49,6 +74,8 @@ public class Usuario {
         if (dataCadastro == null) dataCadastro = LocalDateTime.now();
         if (tipoPerfil == null) tipoPerfil = TipoPerfil.COMUM;
         if (ativo == null) ativo = Boolean.TRUE;
+        if (procuraParceiros == null) procuraParceiros = Boolean.FALSE;
+        if (mostrarDisponibilidade == null) mostrarDisponibilidade = Boolean.FALSE;
     }
 
     public Long getId() { return id; }
@@ -71,6 +98,20 @@ public class Usuario {
     public void setTipoPerfil(TipoPerfil tipoPerfil) { this.tipoPerfil = tipoPerfil; }
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+    public String getModalidadesFavoritas() { return modalidadesFavoritas; }
+    public void setModalidadesFavoritas(String v) { this.modalidadesFavoritas = v; }
+    public NivelExperiencia getNivelExperiencia() { return nivelExperiencia; }
+    public void setNivelExperiencia(NivelExperiencia v) { this.nivelExperiencia = v; }
+    public String getObjetivos() { return objetivos; }
+    public void setObjetivos(String v) { this.objetivos = v; }
+    public String getDisponibilidade() { return disponibilidade; }
+    public void setDisponibilidade(String v) { this.disponibilidade = v; }
+    public String getConquistas() { return conquistas; }
+    public void setConquistas(String v) { this.conquistas = v; }
+    public Boolean getProcuraParceiros() { return procuraParceiros; }
+    public void setProcuraParceiros(Boolean v) { this.procuraParceiros = v; }
+    public Boolean getMostrarDisponibilidade() { return mostrarDisponibilidade; }
+    public void setMostrarDisponibilidade(Boolean v) { this.mostrarDisponibilidade = v; }
     public LocalDateTime getDataCadastro() { return dataCadastro; }
     public void setDataCadastro(LocalDateTime dataCadastro) { this.dataCadastro = dataCadastro; }
 }

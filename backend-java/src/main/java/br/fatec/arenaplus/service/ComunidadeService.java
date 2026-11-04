@@ -8,7 +8,9 @@ import br.fatec.arenaplus.entity.Comunidade;
 import br.fatec.arenaplus.entity.MembroComunidade;
 import br.fatec.arenaplus.entity.PapelMembro;
 import br.fatec.arenaplus.entity.Usuario;
+import br.fatec.arenaplus.exception.AcessoNegadoException;
 import br.fatec.arenaplus.exception.RecursoNaoEncontradoException;
+import br.fatec.arenaplus.security.UsuarioAutenticado;
 import br.fatec.arenaplus.repository.Busca;
 import br.fatec.arenaplus.repository.ComunidadeRepository;
 import br.fatec.arenaplus.repository.MembroComunidadeRepository;
@@ -35,8 +37,8 @@ public class ComunidadeService {
     }
 
     /** Cria a comunidade e registra o criador como MODERADOR. */
-    public ComunidadeResponse criar(ComunidadeRequest req) {
-        Usuario criador = usuarioService.obterAtivo(req.criadorId());
+    public ComunidadeResponse criar(Long criadorId, ComunidadeRequest req) {
+        Usuario criador = usuarioService.obterAtivo(criadorId);
         Comunidade c = new Comunidade();
         c.setNome(req.nome().trim());
         c.setDescricao(req.descricao().trim());
@@ -63,8 +65,9 @@ public class ComunidadeService {
         return toResponse(obter(id));
     }
 
-    public ComunidadeResponse atualizar(Long id, ComunidadeUpdateRequest req) {
+    public ComunidadeResponse atualizar(Long id, ComunidadeUpdateRequest req, UsuarioAutenticado atual) {
         Comunidade c = obter(id);
+        exigirModerador(c, atual);
         c.setNome(req.nome().trim());
         c.setDescricao(req.descricao().trim());
         c.setEsporte(req.esporte().trim());
@@ -76,8 +79,9 @@ public class ComunidadeService {
      * Remove a comunidade e os vínculos de membros.
      * As publicações são preservadas e passam a aparecer apenas no feed geral (comunidadeId = null).
      */
-    public void excluir(Long id) {
+    public void excluir(Long id, UsuarioAutenticado atual) {
         Comunidade c = obter(id);
+        exigirModerador(c, atual);
         publicacoes.desvincularDaComunidade(id);
         membros.deleteByComunidadeId(id);
         comunidades.delete(c);
@@ -86,6 +90,15 @@ public class ComunidadeService {
     @Transactional(readOnly = true)
     public Comunidade obter(Long id) {
         return comunidades.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Comunidade", id));
+    }
+
+    /** Apenas moderadores da comunidade (ou administradores) podem editá-la ou excluí-la. */
+    private void exigirModerador(Comunidade c, UsuarioAutenticado atual) {
+        boolean moderador = membros.findByUsuarioIdAndComunidadeId(atual.id(), c.getId())
+                .map(m -> m.getPapel() == PapelMembro.MODERADOR).orElse(false);
+        if (!moderador && !atual.admin()) {
+            throw new AcessoNegadoException("Apenas moderadores da comunidade podem fazer isso.");
+        }
     }
 
     ComunidadeResponse toResponse(Comunidade c) {

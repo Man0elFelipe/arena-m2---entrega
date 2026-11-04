@@ -3,6 +3,7 @@ package br.fatec.arenaplus.controller;
 import br.fatec.arenaplus.dto.ContagemResponse;
 import br.fatec.arenaplus.dto.CurtidaRequest;
 import br.fatec.arenaplus.dto.CurtidaResponse;
+import br.fatec.arenaplus.security.UsuarioAutenticado;
 import br.fatec.arenaplus.service.CurtidaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,10 +27,10 @@ public class CurtidaController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Curtir publicação")
+    @Operation(summary = "Curtir publicação (como usuário autenticado)")
     @ApiResponse(responseCode = "409", description = "Usuário já curtiu esta publicação")
-    public CurtidaResponse curtir(@Valid @RequestBody CurtidaRequest req) {
-        return service.curtir(req);
+    public CurtidaResponse curtir(@Valid @RequestBody CurtidaRequest req, UsuarioAutenticado atual) {
+        return service.curtir(atual.id(), req);
     }
 
     @GetMapping
@@ -46,15 +47,15 @@ public class CurtidaController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Remover curtida pelo id")
-    public void remover(@PathVariable Long id) {
-        service.remover(id);
+    @Operation(summary = "Remover curtida pelo id (dono ou admin)")
+    public void remover(@PathVariable Long id, UsuarioAutenticado atual) {
+        service.remover(id, atual);
     }
 
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Descurtir pelo par usuário/publicação")
-    public void descurtir(@RequestParam Long usuarioId, @RequestParam Long publicacaoId) {
-        service.descurtir(usuarioId, publicacaoId);
+    @Operation(summary = "Descurtir uma publicação (a minha curtida)")
+    public void descurtir(@RequestParam Long publicacaoId, UsuarioAutenticado atual) {
+        service.descurtir(atual.id(), publicacaoId);
     }
 }

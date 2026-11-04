@@ -29,9 +29,11 @@ public interface PublicacaoRepository extends JpaRepository<Publicacao, Long> {
 
     long countByUsuarioId(Long usuarioId);
 
+    boolean existsByMidiaUrl(String midiaUrl);
+
     long countByComunidadeId(Long comunidadeId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Publicacao p set p.comunidade = null where p.comunidade.id = :comunidadeId")
     int desvincularDaComunidade(@Param("comunidadeId") Long comunidadeId);
 }

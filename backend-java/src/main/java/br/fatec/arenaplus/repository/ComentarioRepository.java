@@ -14,7 +14,7 @@ public interface ComentarioRepository extends JpaRepository<Comentario, Long> {
 
     long countByPublicacaoId(Long publicacaoId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from Comentario c where c.publicacao.id = :publicacaoId")
     int deleteByPublicacaoId(@Param("publicacaoId") Long publicacaoId);
 }

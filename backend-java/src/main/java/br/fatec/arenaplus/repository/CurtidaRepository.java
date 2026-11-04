@@ -19,7 +19,7 @@ public interface CurtidaRepository extends JpaRepository<Curtida, Long> {
 
     long countByPublicacaoId(Long publicacaoId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from Curtida c where c.publicacao.id = :publicacaoId")
     int deleteByPublicacaoId(@Param("publicacaoId") Long publicacaoId);
 }

@@ -5,7 +5,9 @@ import br.fatec.arenaplus.dto.SeguimentoResponse;
 import br.fatec.arenaplus.entity.Seguimento;
 import br.fatec.arenaplus.entity.Usuario;
 import br.fatec.arenaplus.exception.ConflitoException;
+import br.fatec.arenaplus.exception.AcessoNegadoException;
 import br.fatec.arenaplus.exception.RecursoNaoEncontradoException;
+import br.fatec.arenaplus.security.UsuarioAutenticado;
 import br.fatec.arenaplus.exception.RegraNegocioException;
 import br.fatec.arenaplus.repository.SeguimentoRepository;
 import org.springframework.stereotype.Service;
@@ -25,11 +27,11 @@ public class SeguimentoService {
         this.usuarioService = usuarioService;
     }
 
-    public SeguimentoResponse seguir(SeguimentoRequest req) {
-        if (req.seguidorId().equals(req.seguidoId())) {
+    public SeguimentoResponse seguir(Long seguidorId, SeguimentoRequest req) {
+        if (seguidorId.equals(req.seguidoId())) {
             throw new RegraNegocioException("Um usuário não pode seguir a si mesmo.");
         }
-        Usuario seguidor = usuarioService.obterAtivo(req.seguidorId());
+        Usuario seguidor = usuarioService.obterAtivo(seguidorId);
         Usuario seguido = usuarioService.obterAtivo(req.seguidoId());
         if (seguimentos.existsBySeguidorIdAndSeguidoId(seguidor.getId(), seguido.getId())) {
             throw new ConflitoException("Usuário já segue este perfil.");
@@ -65,9 +67,12 @@ public class SeguimentoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Seguimento", id)));
     }
 
-    public void remover(Long id) {
-        seguimentos.delete(seguimentos.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Seguimento", id)));
+    public void remover(Long id, UsuarioAutenticado atual) {
+        Seguimento s = seguimentos.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Seguimento", id));
+        if (!s.getSeguidor().getId().equals(atual.id()) && !atual.admin()) {
+            throw new AcessoNegadoException("Você só pode desfazer os seus próprios seguimentos.");
+        }
+        seguimentos.delete(s);
     }
 
     public void deixarDeSeguir(Long seguidorId, Long seguidoId) {

@@ -3,6 +3,7 @@ package br.fatec.arenaplus.controller;
 import br.fatec.arenaplus.dto.ComentarioRequest;
 import br.fatec.arenaplus.dto.ComentarioResponse;
 import br.fatec.arenaplus.dto.ComentarioUpdateRequest;
+import br.fatec.arenaplus.security.UsuarioAutenticado;
 import br.fatec.arenaplus.service.ComentarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,9 +26,9 @@ public class ComentarioController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Comentar em uma publicação")
-    public ComentarioResponse comentar(@Valid @RequestBody ComentarioRequest req) {
-        return service.comentar(req);
+    @Operation(summary = "Comentar em uma publicação (como usuário autenticado)")
+    public ComentarioResponse comentar(@Valid @RequestBody ComentarioRequest req, UsuarioAutenticado atual) {
+        return service.comentar(atual.id(), req);
     }
 
     @GetMapping
@@ -43,15 +44,15 @@ public class ComentarioController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Editar comentário")
-    public ComentarioResponse atualizar(@PathVariable Long id, @Valid @RequestBody ComentarioUpdateRequest req) {
-        return service.atualizar(id, req);
+    @Operation(summary = "Editar comentário (somente o autor)")
+    public ComentarioResponse atualizar(@PathVariable Long id, @Valid @RequestBody ComentarioUpdateRequest req, UsuarioAutenticado atual) {
+        return service.atualizar(id, req, atual);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Excluir comentário")
-    public void excluir(@PathVariable Long id) {
-        service.excluir(id);
+    @Operation(summary = "Excluir comentário (autor, dono da publicação ou admin)")
+    public void excluir(@PathVariable Long id, UsuarioAutenticado atual) {
+        service.excluir(id, atual);
     }
 }

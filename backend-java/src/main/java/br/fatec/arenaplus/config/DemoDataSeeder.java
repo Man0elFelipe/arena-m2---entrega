@@ -1,6 +1,7 @@
 package br.fatec.arenaplus.config;
 
 import br.fatec.arenaplus.dto.*;
+import br.fatec.arenaplus.entity.NivelExperiencia;
 import br.fatec.arenaplus.entity.TipoPerfil;
 import br.fatec.arenaplus.repository.UsuarioRepository;
 import br.fatec.arenaplus.service.*;
@@ -68,6 +69,15 @@ public class DemoDataSeeder implements ApplicationRunner {
         Long bia = usuario("Beatriz Santos", "beatriz@arenaplus.dev", "img/volei.jpeg",
                 "Levantadora no vôlei universitário.", "Santo André", "Vôlei");
 
+        perfilEsportivo(lucas, "Futebol, Futsal", NivelExperiencia.INTERMEDIARIO, "Ser descoberto por um clube de base",
+                "Sábados de manhã e quartas à noite", "Artilheiro do campeonato do projeto social em 2025", true, true);
+        perfilEsportivo(marina, "Tênis, Corrida", NivelExperiencia.AVANCADO, "Disputar torneios amadores",
+                "Terças e quintas à noite", "Campeã do torneio amador de Campinas 2025", true, true);
+        perfilEsportivo(rafael, "Musculação, Corrida", NivelExperiencia.INTERMEDIARIO, "Correr minha primeira meia maratona",
+                "Manhãs de segunda a sexta", null, true, false);
+        perfilEsportivo(bia, "Vôlei, Basquete", NivelExperiencia.AVANCADO, "Jogar a liga universitária",
+                "Fins de semana", "Melhor levantadora do interfaculdades", false, false);
+
         Long futebol = comunidade("Futebol de Várzea SP", "Jogos, peneiras e projetos sociais de futebol na Grande SP.",
                 "Futebol", "img/futebol.jpeg", lucas);
         Long volei = comunidade("Vôlei Universitário", "Treinos, campeonatos e dicas para quem joga vôlei na faculdade.",
@@ -114,31 +124,44 @@ public class DemoDataSeeder implements ApplicationRunner {
         log.info("Dados de demonstração criados: 5 usuários, 4 comunidades, 4 publicações.");
     }
 
+    private void perfilEsportivo(Long id, String modalidades, NivelExperiencia nivel, String objetivos,
+                                 String disponibilidade, String conquistas, boolean parceiros, boolean mostrarDisp) {
+        usuarios.findById(id).ifPresent(u -> {
+            u.setModalidadesFavoritas(modalidades);
+            u.setNivelExperiencia(nivel);
+            u.setObjetivos(objetivos);
+            u.setDisponibilidade(disponibilidade);
+            u.setConquistas(conquistas);
+            u.setProcuraParceiros(parceiros);
+            u.setMostrarDisponibilidade(mostrarDisp);
+        });
+    }
+
     private Long usuario(String nome, String email, String foto, String bio, String cidade, String esporte) {
         return usuarioService.cadastrar(new UsuarioCreateRequest(nome, email, SENHA_DEMO, foto, bio, cidade, esporte)).id();
     }
 
     private Long comunidade(String nome, String descricao, String esporte, String imagem, Long criador) {
-        return comunidadeService.criar(new ComunidadeRequest(nome, descricao, esporte, imagem, criador)).id();
+        return comunidadeService.criar(criador, new ComunidadeRequest(nome, descricao, esporte, imagem)).id();
     }
 
     private void membro(Long usuario, Long comunidade) {
-        membroService.entrar(new MembroComunidadeRequest(usuario, comunidade, null));
+        membroService.entrar(usuario, new MembroComunidadeRequest(comunidade));
     }
 
     private Long publicacao(Long usuario, Long comunidade, String texto, String midia) {
-        return publicacaoService.criar(new PublicacaoRequest(usuario, comunidade, texto, midia, null)).id();
+        return publicacaoService.criar(usuario, new PublicacaoRequest(comunidade, texto, midia, null)).id();
     }
 
     private void comentario(Long usuario, Long publicacao, String texto) {
-        comentarioService.comentar(new ComentarioRequest(usuario, publicacao, texto));
+        comentarioService.comentar(usuario, new ComentarioRequest(publicacao, texto));
     }
 
     private void curtir(Long usuario, Long publicacao) {
-        curtidaService.curtir(new CurtidaRequest(usuario, publicacao));
+        curtidaService.curtir(usuario, new CurtidaRequest(publicacao));
     }
 
     private void seguir(Long seguidor, Long seguido) {
-        seguimentoService.seguir(new SeguimentoRequest(seguidor, seguido));
+        seguimentoService.seguir(seguidor, new SeguimentoRequest(seguido));
     }
 }

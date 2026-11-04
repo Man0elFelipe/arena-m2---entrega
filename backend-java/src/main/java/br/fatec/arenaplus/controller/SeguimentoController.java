@@ -2,6 +2,7 @@ package br.fatec.arenaplus.controller;
 
 import br.fatec.arenaplus.dto.SeguimentoRequest;
 import br.fatec.arenaplus.dto.SeguimentoResponse;
+import br.fatec.arenaplus.security.UsuarioAutenticado;
 import br.fatec.arenaplus.service.SeguimentoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,11 +27,11 @@ public class SeguimentoController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Seguir usuário")
+    @Operation(summary = "Seguir usuário (o seguidor é o usuário autenticado)")
     @ApiResponse(responseCode = "400", description = "Tentativa de seguir a si mesmo")
     @ApiResponse(responseCode = "409", description = "Seguimento já existe")
-    public SeguimentoResponse seguir(@Valid @RequestBody SeguimentoRequest req) {
-        return service.seguir(req);
+    public SeguimentoResponse seguir(@Valid @RequestBody SeguimentoRequest req, UsuarioAutenticado atual) {
+        return service.seguir(atual.id(), req);
     }
 
     @GetMapping("/seguidores/{usuarioId}")
@@ -46,9 +47,9 @@ public class SeguimentoController {
     }
 
     @GetMapping("/verificar")
-    @Operation(summary = "Verificar se seguidorId segue seguidoId")
-    public Map<String, Boolean> verificar(@RequestParam Long seguidorId, @RequestParam Long seguidoId) {
-        return Map.of("segue", service.segue(seguidorId, seguidoId));
+    @Operation(summary = "Verificar se eu sigo o usuário informado")
+    public Map<String, Boolean> verificar(@RequestParam Long seguidoId, UsuarioAutenticado atual) {
+        return Map.of("segue", service.segue(atual.id(), seguidoId));
     }
 
     @GetMapping("/{id}")
@@ -59,15 +60,15 @@ public class SeguimentoController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Remover seguimento pelo id")
-    public void remover(@PathVariable Long id) {
-        service.remover(id);
+    @Operation(summary = "Remover seguimento pelo id (seguidor ou admin)")
+    public void remover(@PathVariable Long id, UsuarioAutenticado atual) {
+        service.remover(id, atual);
     }
 
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Deixar de seguir pelo par seguidor/seguido")
-    public void deixarDeSeguir(@RequestParam Long seguidorId, @RequestParam Long seguidoId) {
-        service.deixarDeSeguir(seguidorId, seguidoId);
+    @Operation(summary = "Deixar de seguir um usuário")
+    public void deixarDeSeguir(@RequestParam Long seguidoId, UsuarioAutenticado atual) {
+        service.deixarDeSeguir(atual.id(), seguidoId);
     }
 }

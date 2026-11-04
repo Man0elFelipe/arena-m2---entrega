@@ -7,6 +7,7 @@ import br.fatec.arenaplus.service.MembroComunidadeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import br.fatec.arenaplus.security.UsuarioAutenticado;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -26,10 +27,10 @@ public class MembroComunidadeController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Entrar em uma comunidade")
+    @Operation(summary = "Entrar em uma comunidade (como usuário autenticado, papel MEMBRO)")
     @ApiResponse(responseCode = "409", description = "Usuário já participa da comunidade")
-    public MembroComunidadeResponse entrar(@Valid @RequestBody MembroComunidadeRequest req) {
-        return service.entrar(req);
+    public MembroComunidadeResponse entrar(@Valid @RequestBody MembroComunidadeRequest req, UsuarioAutenticado atual) {
+        return service.entrar(atual.id(), req);
     }
 
     @GetMapping
@@ -46,22 +47,22 @@ public class MembroComunidadeController {
     }
 
     @PatchMapping("/{id}/papel")
-    @Operation(summary = "Alterar papel (MEMBRO/MODERADOR)")
-    public MembroComunidadeResponse alterarPapel(@PathVariable Long id, @Valid @RequestBody PapelRequest req) {
-        return service.alterarPapel(id, req.papel());
+    @Operation(summary = "Alterar papel (MEMBRO/MODERADOR) — somente moderador da comunidade ou admin")
+    public MembroComunidadeResponse alterarPapel(@PathVariable Long id, @Valid @RequestBody PapelRequest req, UsuarioAutenticado atual) {
+        return service.alterarPapel(id, req.papel(), atual);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Sair da comunidade pelo id da participação")
-    public void sair(@PathVariable Long id) {
-        service.sair(id);
+    @Operation(summary = "Remover participação pelo id (o próprio membro, moderador ou admin)")
+    public void sair(@PathVariable Long id, UsuarioAutenticado atual) {
+        service.sair(id, atual);
     }
 
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Sair da comunidade pelo par usuário/comunidade")
-    public void sair(@RequestParam Long usuarioId, @RequestParam Long comunidadeId) {
-        service.sair(usuarioId, comunidadeId);
+    @Operation(summary = "Sair de uma comunidade (a minha participação)")
+    public void sairDaComunidade(@RequestParam Long comunidadeId, UsuarioAutenticado atual) {
+        service.sair(atual.id(), comunidadeId);
     }
 }

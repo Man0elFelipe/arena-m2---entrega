@@ -6,7 +6,9 @@ import br.fatec.arenaplus.entity.Comunidade;
 import br.fatec.arenaplus.entity.MembroComunidade;
 import br.fatec.arenaplus.entity.PapelMembro;
 import br.fatec.arenaplus.entity.Usuario;
+import br.fatec.arenaplus.exception.AcessoNegadoException;
 import br.fatec.arenaplus.exception.ConflitoException;
+import br.fatec.arenaplus.security.UsuarioAutenticado;
 import br.fatec.arenaplus.exception.RecursoNaoEncontradoException;
 import br.fatec.arenaplus.exception.RegraNegocioException;
 import br.fatec.arenaplus.repository.MembroComunidadeRepository;
@@ -30,8 +32,8 @@ public class MembroComunidadeService {
         this.comunidadeService = comunidadeService;
     }
 
-    public MembroComunidadeResponse entrar(MembroComunidadeRequest req) {
-        Usuario usuario = usuarioService.obterAtivo(req.usuarioId());
+    public MembroComunidadeResponse entrar(Long usuarioId, MembroComunidadeRequest req) {
+        Usuario usuario = usuarioService.obterAtivo(usuarioId);
         Comunidade comunidade = comunidadeService.obter(req.comunidadeId());
         if (membros.existsByUsuarioIdAndComunidadeId(usuario.getId(), comunidade.getId())) {
             throw new ConflitoException("Usuário já participa desta comunidade.");
@@ -39,7 +41,7 @@ public class MembroComunidadeService {
         MembroComunidade m = new MembroComunidade();
         m.setUsuario(usuario);
         m.setComunidade(comunidade);
-        m.setPapel(req.papel() == null ? PapelMembro.MEMBRO : req.papel());
+        m.setPapel(PapelMembro.MEMBRO); // ninguém escolhe o próprio papel
         return MembroComunidadeResponse.from(membros.save(m));
     }
 
@@ -67,14 +69,21 @@ public class MembroComunidadeService {
         return MembroComunidadeResponse.from(obter(id));
     }
 
-    public MembroComunidadeResponse alterarPapel(Long id, PapelMembro papel) {
+    public MembroComunidadeResponse alterarPapel(Long id, PapelMembro papel, UsuarioAutenticado atual) {
         MembroComunidade m = obter(id);
+        exigirModerador(m.getComunidade().getId(), atual);
+        if (m.getUsuario().getId().equals(m.getComunidade().getCriador().getId())) {
+            throw new RegraNegocioException("O criador da comunidade permanece moderador.");
+        }
         m.setPapel(papel);
         return MembroComunidadeResponse.from(m);
     }
 
-    public void sair(Long id) {
-        membros.delete(obter(id));
+    /** O próprio membro, um moderador da comunidade ou um administrador podem remover a participação. */
+    public void sair(Long id, UsuarioAutenticado atual) {
+        MembroComunidade m = obter(id);
+        if (!m.getUsuario().getId().equals(atual.id())) exigirModerador(m.getComunidade().getId(), atual);
+        membros.delete(m);
     }
 
     public void sair(Long usuarioId, Long comunidadeId) {
@@ -87,6 +96,14 @@ public class MembroComunidadeService {
     @Transactional(readOnly = true)
     public boolean participa(Long usuarioId, Long comunidadeId) {
         return membros.existsByUsuarioIdAndComunidadeId(usuarioId, comunidadeId);
+    }
+
+    private void exigirModerador(Long comunidadeId, UsuarioAutenticado atual) {
+        boolean moderador = membros.findByUsuarioIdAndComunidadeId(atual.id(), comunidadeId)
+                .map(x -> x.getPapel() == PapelMembro.MODERADOR).orElse(false);
+        if (!moderador && !atual.admin()) {
+            throw new AcessoNegadoException("Apenas moderadores da comunidade podem fazer isso.");
+        }
     }
 
     private MembroComunidade obter(Long id) {

@@ -14,6 +14,9 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
@@ -43,6 +46,36 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CredenciaisInvalidasException.class)
     public ResponseEntity<ErroResponse> credenciais(CredenciaisInvalidasException ex, HttpServletRequest req) {
         return erro(HttpStatus.UNAUTHORIZED, ex.getMessage(), req, null);
+    }
+
+    @ExceptionHandler(NaoAutenticadoException.class)
+    public ResponseEntity<ErroResponse> naoAutenticado(NaoAutenticadoException ex, HttpServletRequest req) {
+        return erro(HttpStatus.UNAUTHORIZED, ex.getMessage(), req, null);
+    }
+
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ResponseEntity<ErroResponse> acessoNegado(AcessoNegadoException ex, HttpServletRequest req) {
+        return erro(HttpStatus.FORBIDDEN, ex.getMessage(), req, null);
+    }
+
+    @ExceptionHandler(MuitasRequisicoesException.class)
+    public ResponseEntity<ErroResponse> muitasRequisicoes(MuitasRequisicoesException ex, HttpServletRequest req) {
+        return erro(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), req, null);
+    }
+
+    @ExceptionHandler(ServicoIndisponivelException.class)
+    public ResponseEntity<ErroResponse> indisponivel(ServicoIndisponivelException ex, HttpServletRequest req) {
+        return erro(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), req, null);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErroResponse> uploadGrande(MaxUploadSizeExceededException ex, HttpServletRequest req) {
+        return erro(HttpStatus.PAYLOAD_TOO_LARGE, "Arquivo grande demais. Limite: imagens até 10 MB e vídeos até 50 MB.", req, null);
+    }
+
+    @ExceptionHandler({MissingServletRequestPartException.class, MultipartException.class})
+    public ResponseEntity<ErroResponse> multipart(Exception ex, HttpServletRequest req) {
+        return erro(HttpStatus.BAD_REQUEST, "Envie o arquivo no campo 'arquivo' (multipart/form-data).", req, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

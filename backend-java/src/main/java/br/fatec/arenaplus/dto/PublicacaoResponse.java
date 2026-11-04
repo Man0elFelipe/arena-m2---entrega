@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 /**
  * Publicação com autor e contadores.
- * curtidaPeloUsuario só é preenchido quando a consulta informa viewerId.
+ * curtidaPeloUsuario e salvaPeloUsuario refletem o usuário autenticado.
  */
 public record PublicacaoResponse(
         Long id,
@@ -21,5 +21,6 @@ public record PublicacaoResponse(
         LocalDateTime dataEdicao,
         long totalCurtidas,
         long totalComentarios,
-        Boolean curtidaPeloUsuario) {
+        Boolean curtidaPeloUsuario,
+        Boolean salvaPeloUsuario) {
 }
