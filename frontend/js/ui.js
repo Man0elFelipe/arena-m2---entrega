@@ -231,6 +231,7 @@
       document.addEventListener('visibilitychange', () => { if (!document.hidden) consultarNaoLidas(); });
     }
     if (window.Coach) window.Coach.montar();
+    if (window.Efeitos) window.Efeitos.aoMontarHeader();
   }
 
   function param(nome) {

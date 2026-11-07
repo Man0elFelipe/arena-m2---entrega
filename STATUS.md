@@ -1,3 +1,39 @@
+# STATUS — Arena+ 2.2 (continuação: Coach, Swagger limpo e visual premium)
+
+> **Última atualização:** 07/11/2026. Branch `arena-2.2`. Entrega: **segunda, 09/11/2026**.
+
+## 2.2b — O que mudou nesta etapa
+
+| Item | Situação | Verificação |
+|---|---|---|
+| Auditoria (token, Coach, widget) | ✅ Token e Authorize existiam; Coach e widget existiam **mas com falhas** | Leitura do código + execução |
+| Swagger sem credenciais de exemplo | ✅ | `/v3/api-docs` sem `arena123`/`lucas@`/`senha123` (0 ocorrências); Authorize mantido |
+| Dica de contas na tela de login | ✅ Removida (seeder mantido) | Navegador |
+| Causa do "Coach indisponível" | ✅ Diagnosticada e corrigida | Ver ARQUITETURA.md |
+| `iniciar.sh` carrega `.env`; `.env.example` sem chave | ✅ | Parser testado com arquivo falso (CRLF, aspas, espaços, prioridade do ambiente) |
+| Coach: erros 503/502/429 distintos, timeout, log mascarado | ✅ | 14 testes novos + **chamadas reais à OpenAI** (sucesso, recusa de dor no peito, recusa de assunto fora do tema, 404 de modelo → 502) |
+| Widget do Coach (Enter, "digitando…", retry, estados) | ✅ | Navegador com a IA real; erros 502/0/429/400 simulados no cliente |
+| Visual premium (vidro, 3D, parallax, motion, hero) em todas as páginas | ✅ | Navegador desktop e 375 px; matriz `matrix3d` confirmada; sem links quebrados; requisições todas 200 |
+
+## 2.2b — Testes realmente executados
+
+- `./mvnw test`: **61 testes, 0 falhas** (inclui `CoachIntegrationTest`, com o provedor simulado por servidor HTTP local, e `CoachServiceTest`).
+- `scripts/smoke-test-api.sh` contra instância isolada: **75 ok, 0 falhas** (com chave configurada ele **não** faz a pergunta paga; sem chave valida o 503).
+- Chave real: 1 pergunta de sucesso, 2 de segurança e 1 falha forçada (modelo inexistente). Em nenhum momento a chave apareceu em log, resposta, arquivo ou commit (`git grep` e busca em disco: 0).
+- Navegador (instância isolada 8099/3099): login, feed, explorar, perfil, comunidades, comunidade, mensagens, salvos e publicação carregam sem erro de JavaScript; navegação inferior do celular com 6 atalhos.
+
+## 2.2b — NÃO testado / limitações
+
+- `prefers-reduced-motion` **não foi exercitado no navegador** (não há como ligar a preferência ali): conferi apenas as regras carregadas e o código do `efeitos.js`.
+- Em painel de navegador oculto, transições CSS ficam congeladas; os estados finais foram conferidos finalizando as animações por script. Em navegador visível funcionam normalmente.
+- Inclinação 3D testada com eventos de ponteiro simulados, não com mouse físico.
+- Safari/Firefox não foram testados (só o navegador embutido, baseado em Chromium).
+- Histórico do Coach fica no H2 por usuário (decisão registrada em ARQUITETURA.md), e não apenas no navegador.
+- Eventos, chat e salvos foram feitos antes; esta etapa só verificou que as telas carregam e que não há link quebrado, sem reexecutar todos os fluxos deles.
+- A chave da OpenAI foi colada no chat duas vezes: **revogue-a** em platform.openai.com e use uma nova no `.env`.
+
+---
+
 # STATUS — Arena+ 2.2 (handoff para o Codex)
 
 > **Última atualização:** 03/11/2026. Branch `arena-2.2` (checkpoint em `main`: `010456f`). Entrega: **segunda, 09/11/2026**.

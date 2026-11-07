@@ -139,3 +139,37 @@ Eventos guardam organizador, estado e capacidade; as participações têm restri
 6. **Busca sem acento:** o termo é normalizado em Java (`Busca.normalizar`) e as colunas com `TRANSLATE` no SQL. As tabelas de acentos chegam à consulta por SpEL, sem mudar a assinatura dos repositórios. `TRANSLATE` existe no H2 e no PostgreSQL.
 7. **Diálogos sem depender do evento `close`:** a confirmação resolve no clique ou no Esc. O evento `close` é assíncrono e pode ser adiado em abas em segundo plano.
 8. **Contadores calculados por publicação** (consultas `count`): simples e corretos para o volume acadêmico. Com volume maior, otimizar com *projections* (N+1 conhecido).
+
+
+## Arena Coach (IA) — configuração, erros e diagnóstico
+
+**Fluxo:** navegador → `POST /api/coach/mensagens` (token Bearer) → `CoachService` → `POST {base-url}/chat/completions` no provedor. A chave só existe no processo da API.
+
+| Peça | Papel |
+|---|---|
+| `CoachService` | Valida a mensagem, aplica limites (6/min e 30/h por usuário), monta o prompt de sistema + contexto do usuário + últimas 12 falas, chama o provedor e traduz falhas |
+| `CoachHistoricoService` | Parte transacional (histórico por usuário e contexto). Separada para a chamada HTTP nunca segurar uma transação |
+| `ProvedorIndisponivelException` | `502`: falha do provedor (401/403/404/429/5xx, timeout, rede, resposta vazia ou inválida) |
+| `ServicoIndisponivelException` | `503`: servidor sem chave ("Coach não configurado no servidor") |
+| `LimiteRequisicoes` | Janela fixa em memória (compartilhada com login e chat) |
+
+**Propriedades** (`application.properties`): `arenaplus.coach.api-key` (`${ARENAPLUS_COACH_API_KEY:${OPENAI_API_KEY:}}`), `base-url`, `model`, `timeout-segundos`, `max-chars-mensagem`, `limite-por-minuto`, `limite-por-hora`. O `iniciar.sh` carrega o `.env` da raiz (não versionado; modelo em `.env.example`).
+
+**Decisões:**
+1. O corpo usa `max_completion_tokens` e **não** envia `temperature`: modelos novos recusam `max_tokens` e valores de temperatura diferentes do padrão.
+2. **Histórico no H2** (`mensagem_coach`), por usuário autenticado, e não só no navegador. A tabela já existia e é a que torna o histórico privado e persistente. O frontend não reenvia o histórico: o backend lê as últimas 12 falas.
+3. Pergunta e resposta são gravadas **juntas, só se o provedor respondeu**; uma falha não deixa pergunta órfã no histórico.
+4. Logs: status HTTP e corpo da falha do provedor, passando por `mascarar()`, que troca a chave configurada e qualquer padrão `sk-...` por `****`.
+
+**Causa do "O Arena Coach está temporariamente indisponível"** (código anterior): (a) o `iniciar.sh` não lia `.env` e a propriedade só enxergava `OPENAI_API_KEY` no ambiente do processo Java, então a chave exportada em outro terminal nunca chegava à API e `status.disponivel` ficava `false`; (b) qualquer erro do provedor virava a mesma frase, sem log. Ambos corrigidos.
+
+## Camada visual (Fase 2.2)
+
+Tudo em `frontend/css/app.css` (tokens + "camada premium" no fim do arquivo) e `frontend/js/efeitos.js`. Sem framework nem etapa de build.
+
+- **Profundidade:** vidro fosco (`backdrop-filter` com fallback sólido) no cabeçalho, diálogos, toasts e Coach; sombras em 3 camadas; luz interna; raios de 20–26 px; fundo em gradiente numa camada fixa.
+- **3D (só com mouse):** os cards (`comunidade`, `pessoa`, `mini-perfil`, missão) inclinam até 7° seguindo o cursor, com brilho que acompanha o ponteiro e parallax na capa. Ativo apenas em `(hover: hover) and (pointer: fine)`; o JS grava `--rx/--ry/--mx/--my` e o CSS faz o resto.
+- **Hero do login:** 4 fotos e a logo em camadas com `perspective`, parallax pelo cursor e flutuação suave (escondido abaixo de 1100 px).
+- **Movimento:** entrada escalonada, curtir com anel, pílula deslizante na navegação, "digitando…" no Coach. Só `transform`/`opacity`.
+- **Acessibilidade e desempenho:** `prefers-reduced-motion` desliga animações, inclinação e parallax (CSS e JS); foco visível mantido; no celular não há inclinação 3D e a navegação continua sendo a barra inferior (6 atalhos, incluindo Coach).
+- **Armadilhas resolvidas:** `animation-fill-mode: both` prendia o `transform` e anulava a inclinação (usa-se `backwards`); `backdrop-filter` no `.topo` prenderia a barra fixa no celular (desligado ≤ 640 px).

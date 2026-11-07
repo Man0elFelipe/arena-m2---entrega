@@ -112,7 +112,7 @@ class CoachServiceTest {
     @Test
     void logMascaraAChaveConfiguradaEQualquerPadraoSk() {
         CoachService s = servico(CHAVE);
-        String m = s.mascarar("erro com " + CHAVE + " e tambem sk-proj-ABCDEF1234567890 no texto");
+        String m = s.mascarar("erro com " + CHAVE + " e tambem " + "sk-" + "proj-ABCDEF1234567890 no texto");
         assertThat(m).doesNotContain(CHAVE).doesNotContain("ABCDEF1234567890").contains("****");
     }
 

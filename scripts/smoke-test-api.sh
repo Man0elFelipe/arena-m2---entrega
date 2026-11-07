@@ -50,7 +50,12 @@ req GET "/api/conversas/$CV/mensagens" 403 # terceiro sem acesso
 # --- Coach sem chave e eventos ---
 TOK=$TA
 req GET /api/coach/status 200
-req POST /api/coach/mensagens 503 "{\"texto\":\"Como aquecer?\"}"
+if [ "$(jget "['disponivel']")" = "False" ]; then
+  req POST /api/coach/mensagens 503 "{\"texto\":\"Como aquecer?\"}"      # sem chave: "Coach não configurado"
+else
+  echo "INFO Coach configurado: pulando a pergunta real (gastaria crédito do provedor)"
+fi
+req POST /api/coach/mensagens 400 "{\"texto\":\"   \"}"                  # validação, sem chamar o provedor
 DATA_EVENTO=$(python3 -c 'from datetime import datetime,timedelta; print((datetime.now()+timedelta(days=2)).replace(microsecond=0).isoformat())')
 req POST /api/eventos 201 "{\"modalidade\":\"Corrida\",\"titulo\":\"Smoke treino\",\"descricao\":\"Rodagem leve\",\"cidade\":\"Santos\",\"local\":\"Parque\",\"dataHora\":\"$DATA_EVENTO\",\"vagasMaximas\":2}"; EV=$(jget "['id']")
 TOK=$TB

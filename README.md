@@ -20,7 +20,32 @@ Documentos de acompanhamento: [STATUS.md](STATUS.md) · [ARQUITETURA.md](ARQUITE
 
 ## Como executar no macOS
 
-Os recursos incluem chat privado, eventos esportivos e Arena Coach. Coach usa exclusivamente a variável de ambiente `OPENAI_API_KEY`; sem ela, o restante da aplicação continua funcionando, o painel mostra indisponibilidade e o endpoint de pergunta responde 503. Não grave a chave em arquivos, banco de dados, Git ou frontend.
+Os recursos incluem chat privado, eventos esportivos e Arena Coach (IA).
+
+### Configurar o Arena Coach (chave da IA)
+
+A chamada à IA acontece **só no backend Java**; a chave nunca vai para o navegador, para o Git ou para o banco.
+
+1. Copie o exemplo e preencha a chave (o arquivo `.env` já está no `.gitignore`):
+   ```bash
+   cp .env.example .env
+   # edite o .env e preencha ARENAPLUS_COACH_API_KEY=...
+   ```
+2. Rode `./iniciar.sh`. Ele lê o `.env` (sem imprimir valores) e mostra `✓ Arena Coach: chave encontrada`.
+3. Se a API já estiver rodando, **pare-a e inicie de novo**: ela só lê a chave ao subir.
+
+Variáveis aceitas: `ARENAPLUS_COACH_API_KEY` (ou `OPENAI_API_KEY`), `ARENAPLUS_COACH_MODEL` (padrão `gpt-4o-mini`) e `ARENAPLUS_COACH_BASE_URL` (padrão `https://api.openai.com/v1`; serve para qualquer provedor com o formato `chat/completions`).
+
+| Situação | Resposta da API | O que o painel mostra |
+|---|---|---|
+| Sem chave no servidor | `503` | "Coach não configurado no servidor" + **Verificar novamente** |
+| Chave inválida, sem saldo, modelo errado, limite do provedor, 5xx ou timeout | `502` | "O Coach está indisponível agora" + **Tentar de novo** |
+| Muitas perguntas (6/min, 30/h por usuário) | `429` | "Muitas perguntas em pouco tempo" |
+| Sem conexão com a API | — | "Sem conexão com a API" + **Tentar de novo** |
+
+O motivo exato de uma falha do provedor (status HTTP e corpo, **com a chave mascarada**) aparece no log da API (`logs/api.log`). Ao subir, o log diz se há chave (`Arena Coach configurado: ... chave=(oculta)` ou `Arena Coach SEM CHAVE`).
+
+O Coach só orienta sobre esporte e hábitos de treino; não diagnostica nem prescreve, recusa dor/lesão/dieta restritiva e indica um profissional. O esporte principal, o nível e as comunidades do próprio usuário vão ao provedor como contexto da conversa.
 
 ### Jeito rápido: um comando só
 
@@ -126,7 +151,7 @@ Esta é uma **demonstração acadêmica**:
 - as senhas são guardadas apenas como hash BCrypt, e nenhuma resposta expõe a senha ou o hash;
 - operações protegidas exigem token Bearer e usam a identidade extraída do token; campos de ID no corpo identificam recursos e nunca substituem essa identidade;
 - mensagens privadas e histórico do Coach são filtrados pelo usuário autenticado;
-- a chave do Coach vem somente da variável de ambiente `OPENAI_API_KEY`;
+- a chave do Coach vem somente do ambiente/`.env` (`ARENAPLUS_COACH_API_KEY`), nunca é devolvida em respostas nem escrita em log;
 - o Swagger e o console H2 não devem ser expostos publicamente.
 
 Veja as limitações em [STATUS.md](STATUS.md).
