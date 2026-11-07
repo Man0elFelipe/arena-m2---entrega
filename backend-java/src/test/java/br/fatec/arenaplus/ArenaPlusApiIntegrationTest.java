@@ -146,7 +146,7 @@ class ArenaPlusApiIntegrationTest {
         U atleta = novoUsuario("Coach sem chave");
         doGet(atleta.token(), "/api/coach/status").andExpect(status().isOk()).andExpect(jsonPath("$.disponivel", is(false)));
         doPost(atleta.token(), "/api/coach/mensagens", "{\"texto\":\"Como aquecer?\"}")
-                .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.mensagem", containsString("temporariamente indisponível")));
+                .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.mensagem", containsString("não configurado")));
     }
 
     private ResultActions upload(String token, String nome, String contentType, byte[] conteudo) throws Exception {

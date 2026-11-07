@@ -51,11 +51,7 @@
     aviso.hidden = false;
   }
 
-  document.querySelectorAll('[data-demo]').forEach((b) => b.addEventListener('click', () => {
-    formLogin.elements.email.value = b.dataset.demo;
-    formLogin.elements.senha.value = 'arena123';
-    formLogin.elements.senha.focus();
-  }));
+
 
   formLogin.addEventListener('submit', async (ev) => {
     ev.preventDefault();

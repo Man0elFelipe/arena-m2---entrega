@@ -27,11 +27,7 @@ public class OpenApiConfig {
                         .version("2.2.0")
                         .description("""
                                 API REST da Arena+, rede social esportiva (Projeto Interdisciplinar FATEC).
-
-                                **Como testar:** (1) `POST /api/auth/login` com um usuário (ex.: `lucas@arenaplus.dev` / `arena123`);
-                                (2) copie o campo `token` da resposta; (3) clique em **Authorize** (cadeado) e cole o token;
-                                (4) use qualquer endpoint com **Try it out**. A identidade vem do token: nenhum endpoint
-                                aceita `usuarioId` do cliente como identidade. Login e cadastro são públicos.
+                                Login e cadastro são públicos; os demais endpoints exigem token Bearer (botão Authorize).
                                 """)
                         .contact(new Contact().name("Equipe Arena+ — FATEC")))
                 .components(new Components().addSecuritySchemes("bearerAuth",

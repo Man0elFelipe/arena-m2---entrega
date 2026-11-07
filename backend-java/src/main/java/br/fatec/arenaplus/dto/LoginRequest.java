@@ -5,6 +5,6 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequest(
-        @Schema(example = "ana@arenaplus.dev") @NotBlank(message = "Email é obrigatório") @Email(message = "Email inválido") String email,
-        @Schema(example = "senha123") @NotBlank(message = "Senha é obrigatória") String senha) {
+        @Schema(description = "Email cadastrado") @NotBlank(message = "Email é obrigatório") @Email(message = "Email inválido") String email,
+        @Schema(description = "Senha da conta") @NotBlank(message = "Senha é obrigatória") String senha) {
 }

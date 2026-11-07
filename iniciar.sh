@@ -60,6 +60,30 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 verde "✓ Node $(node -v)"
 
+# ---------- .env (chaves e opções locais; não versionado) ----------
+# Lê linhas CHAVE=valor sem executar o arquivo. Variáveis já definidas no ambiente têm prioridade.
+carregar_env() {
+  local arquivo="$RAIZ/.env" linha chave valor
+  [ -f "$arquivo" ] || return 0
+  while IFS= read -r linha || [ -n "$linha" ]; do
+    linha="${linha%$'\r'}"
+    case "$linha" in ''|\#*) continue ;; esac
+    chave="${linha%%=*}"; valor="${linha#*=}"
+    chave="${chave//[[:space:]]/}"
+    valor="${valor#"${valor%%[![:space:]]*}"}"; valor="${valor%"${valor##*[![:space:]]}"}"   # apara espaços
+    [[ "$chave" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+    if [[ "$valor" =~ ^\"(.*)\"$ ]] || [[ "$valor" =~ ^\'(.*)\'$ ]]; then valor="${BASH_REMATCH[1]}"; fi
+    [ -z "${!chave+x}" ] && export "$chave=$valor"
+  done < "$arquivo"
+  return 0
+}
+carregar_env
+if [ -n "${ARENAPLUS_COACH_API_KEY:-}${OPENAI_API_KEY:-}" ]; then
+  verde "✓ Arena Coach: chave encontrada (valor oculto)"
+else
+  amarelo "• Arena Coach sem chave: copie .env.example para .env e preencha ARENAPLUS_COACH_API_KEY"
+fi
+
 mkdir -p "$LOGS"
 PID_API=""
 PID_FRONT=""
@@ -92,7 +116,8 @@ porta_ocupada() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }
 # ---------- API Java ----------
 if porta_ocupada 8080; then
   if curl -s "$API_URL/v3/api-docs" 2>/dev/null | grep -q 'Arena+ API'; then
-    amarelo "• A API já está rodando na porta 8080 — reutilizando."
+    amarelo "• A API já está rodando na porta 8080 — reutilizando (ela mantém o ambiente com que foi iniciada;"
+    amarelo "  se você acabou de editar o .env, pare a API e rode ./iniciar.sh de novo)."
     $LIMPO && amarelo "  (--limpo ignorado: pare a API atual para limpar o banco)"
   else
     vermelho "✗ A porta 8080 está ocupada por outro programa:"

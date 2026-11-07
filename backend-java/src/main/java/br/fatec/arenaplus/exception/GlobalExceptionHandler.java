@@ -63,6 +63,11 @@ public class GlobalExceptionHandler {
         return erro(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), req, null);
     }
 
+    @ExceptionHandler(ProvedorIndisponivelException.class)
+    public ResponseEntity<ErroResponse> provedorIndisponivel(ProvedorIndisponivelException ex, HttpServletRequest req) {
+        return erro(HttpStatus.BAD_GATEWAY, ex.getMessage(), req, null);
+    }
+
     @ExceptionHandler(ServicoIndisponivelException.class)
     public ResponseEntity<ErroResponse> indisponivel(ServicoIndisponivelException ex, HttpServletRequest req) {
         return erro(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), req, null);
