@@ -14,7 +14,8 @@ public class Evento {
  @Column(nullable=false) private int vagasMaximas;
  @ManyToOne(fetch=FetchType.LAZY,optional=false) private Usuario organizador;
  @Enumerated(EnumType.STRING) @Column(nullable=false,length=16) private Estado estado=Estado.ABERTO;
+ @Column(length=500) private String imagemUrl;
  protected Evento(){}
  public Evento(String modalidade,String titulo,String descricao,String cidade,String local,LocalDateTime dataHora,int vagasMaximas,Usuario organizador){this.modalidade=modalidade;this.titulo=titulo;this.descricao=descricao;this.cidade=cidade;this.local=local;this.dataHora=dataHora;this.vagasMaximas=vagasMaximas;this.organizador=organizador;}
- public Long getId(){return id;} public String getModalidade(){return modalidade;} public String getTitulo(){return titulo;} public String getDescricao(){return descricao;} public String getCidade(){return cidade;} public String getLocal(){return local;} public LocalDateTime getDataHora(){return dataHora;} public int getVagasMaximas(){return vagasMaximas;} public Usuario getOrganizador(){return organizador;} public Estado getEstado(){return estado;} public void setEstado(Estado e){estado=e;}
+ public Long getId(){return id;} public String getModalidade(){return modalidade;} public String getTitulo(){return titulo;} public String getDescricao(){return descricao;} public String getCidade(){return cidade;} public String getLocal(){return local;} public LocalDateTime getDataHora(){return dataHora;} public int getVagasMaximas(){return vagasMaximas;} public Usuario getOrganizador(){return organizador;} public String getImagemUrl(){return imagemUrl;} public void setImagemUrl(String u){imagemUrl=u;} public Estado getEstado(){return estado;} public void setEstado(Estado e){estado=e;}
 }

@@ -38,7 +38,7 @@
         <label class="campo"><span>Nome *</span><input name="nome" required maxlength="100"></label>
         <label class="campo"><span>Esporte *</span><input name="esporte" required maxlength="60"></label>
         <label class="campo"><span>Descrição *</span><textarea name="descricao" rows="3" required maxlength="1000"></textarea></label>
-        <label class="campo"><span>URL da imagem de capa</span><input name="imagemUrl" maxlength="500"></label>
+        <div class="campo" id="seletor-capa"></div>
         <div class="dialogo-acoes" style="justify-content:space-between">
             <button type="button" class="btn btn-secundario btn-pequeno" id="btn-excluir" style="color:var(--perigo)">Excluir comunidade</button>
             <span style="display:flex;gap:.5rem">
@@ -52,6 +52,7 @@
 <script src="js/session.js"></script>
 <script src="js/api.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/upload.js"></script>
 <script src="js/components.js"></script>
 <script src="js/coach.js"></script>
 <script src="js/efeitos.js"></script>

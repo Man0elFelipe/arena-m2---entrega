@@ -97,11 +97,15 @@ req PUT "/api/comunidades/$C" 403 "{\"nome\":\"x\",\"descricao\":\"y\",\"esporte
 printf '\xff\xd8\xff\xe0JFIFsmoke' > "$TMP/foto.jpg"
 printf '\x89PNG\r\n\x1a\nsmoke' > "$TMP/foto.png"
 printf '\x00\x00\x00\x18ftypisomsmoke-video-bytes' > "$TMP/video.mp4"
+printf '\x00\x00\x00\x14ftypqt  \x00\x00\x00\x00qt  smoke-mov' > "$TMP/iphone.MOV"   # QuickTime (iPhone/Mac)
 echo "isto nao e uma imagem" > "$TMP/falso.jpg"
 TOK=$TA
 upload "$TMP/foto.jpg" 201; URL_JPG=$(jget "['url']")
 upload "$TMP/foto.png" 201
 upload "$TMP/video.mp4" 201; URL_MP4=$(jget "['url']")
+upload "$TMP/iphone.MOV" 201
+[ "$(jget "['tipoMidia']")" = "VIDEO" ] && { pass=$((pass+1)); echo "OK   .MOV aceito como VIDEO"; } || { fail=$((fail+1)); echo "FAIL .MOV nao foi tratado como VIDEO"; }
+req GET /api/midias/limites 200
 upload "$TMP/falso.jpg" 400
 code=$(curl -s -o /dev/null -w '%{http_code}' "$B$URL_JPG"); [ "$code" = "200" ] && { pass=$((pass+1)); echo "OK   200 GET $URL_JPG (mídia servida)"; } || { fail=$((fail+1)); echo "FAIL $code GET $URL_JPG"; }
 req POST /api/publicacoes 201 "{\"texto\":\"Com foto\",\"midiaUrl\":\"$URL_JPG\"}"; P2=$(jget "['id']")

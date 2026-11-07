@@ -5,7 +5,7 @@
   const comMouse = window.matchMedia('(hover: hover) and (pointer: fine)');
   const ativo = () => !reduzir.matches && comMouse.matches;
 
-  const ALVOS = '.comunidade-card, .pessoa-card, .mini-perfil, .card-missao, .evento-card, [data-tilt]';
+  const ALVOS = '.comunidade-card, .pessoa-card, .mini-perfil, .card-missao, [data-tilt]';
   const INCLINACAO = 7; // graus no máximo
 
   // ---------- inclinação 3D seguindo o cursor ----------
@@ -44,7 +44,10 @@
     aplicar(); // direto no evento: uma leitura + escritas de variáveis CSS (barato, e não depende de requestAnimationFrame)
   }, { passive: true });
 
-  document.addEventListener('pointerleave', () => { soltar(atual); atual = null; }, true);
+  // Ao sair do card (ou da janela) a inclinação é desfeita, para o repouso ficar sempre reto
+  document.addEventListener('pointerout', (ev) => {
+    if (atual && (!ev.relatedTarget || !atual.contains(ev.relatedTarget))) { soltar(atual); atual = null; }
+  }, true);
   window.addEventListener('blur', () => { soltar(atual); atual = null; });
 
   // ---------- parallax no hero do login (profundidade entre camadas) ----------

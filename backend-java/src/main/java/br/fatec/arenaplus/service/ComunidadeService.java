@@ -27,9 +27,11 @@ public class ComunidadeService {
     private final MembroComunidadeRepository membros;
     private final PublicacaoRepository publicacoes;
     private final UsuarioService usuarioService;
+    private final MidiaService midiaService;
 
     public ComunidadeService(ComunidadeRepository comunidades, MembroComunidadeRepository membros,
-                             PublicacaoRepository publicacoes, UsuarioService usuarioService) {
+                             PublicacaoRepository publicacoes, UsuarioService usuarioService, MidiaService midiaService) {
+        this.midiaService = midiaService;
         this.comunidades = comunidades;
         this.membros = membros;
         this.publicacoes = publicacoes;
@@ -43,7 +45,7 @@ public class ComunidadeService {
         c.setNome(req.nome().trim());
         c.setDescricao(req.descricao().trim());
         c.setEsporte(req.esporte().trim());
-        c.setImagemUrl(Textos.limpar(req.imagemUrl()));
+        c.setImagemUrl(midiaService.validarCapa(req.imagemUrl(), criadorId));
         c.setCriador(criador);
         comunidades.save(c);
 
@@ -71,7 +73,13 @@ public class ComunidadeService {
         c.setNome(req.nome().trim());
         c.setDescricao(req.descricao().trim());
         c.setEsporte(req.esporte().trim());
-        c.setImagemUrl(Textos.limpar(req.imagemUrl()));
+        String antiga = c.getImagemUrl();
+        String nova = Textos.limpar(req.imagemUrl());
+        if (!java.util.Objects.equals(nova, antiga)) { // só valida se a capa mudou (outro moderador pode reenviar a mesma)
+            c.setImagemUrl(midiaService.validarCapa(nova, atual.id()));
+            comunidades.flush();
+            midiaService.liberarSeOrfa(antiga);
+        }
         return toResponse(c);
     }
 

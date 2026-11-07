@@ -47,6 +47,29 @@ O motivo exato de uma falha do provedor (status HTTP e corpo, **com a chave masc
 
 O Coach só orienta sobre esporte e hábitos de treino; não diagnostica nem prescreve, recusa dor/lesão/dieta restritiva e indica um profissional. O esporte principal, o nível e as comunidades do próprio usuário vão ao provedor como contexto da conversa.
 
+### Upload de imagens e vídeos
+
+O armazenamento é **local** (pasta `backend-java/data/uploads`, servida em `/media/...`); **não há chave nem conta externa**. Os metadados ficam no H2 e os arquivos no disco, então `./iniciar.sh --limpo` apaga as duas coisas.
+
+- **Imagens:** JPG, PNG e WebP. **Vídeos:** MP4, **MOV (QuickTime, gravações do iPhone/Mac)** e WebM. O formato é conferido pelo **conteúdo** do arquivo, não pela extensão.
+- **Capas** de comunidade e de evento: escolha um arquivo (com prévia e arrastar-e-soltar) ou cole um link.
+- O limite de tamanho é configurável (padrões: 10 MB para imagem e 50 MB para vídeo) e a interface lê o valor do servidor (`GET /api/midias/limites`), então a mensagem de erro sempre cita o limite real.
+- Vídeos do iPhone costumam usar HEVC: o envio funciona, mas alguns navegadores (Chrome/Edge no Windows) não conseguem **reproduzir** esse codec. O Safari reproduz.
+
+### Variáveis de ambiente (`.env`)
+
+Nenhuma chave fica no código. O `./iniciar.sh` lê o arquivo `.env` da raiz (modelo em `.env.example`; o `.env` está no `.gitignore`). Linhas vazias são ignoradas e valem os padrões.
+
+| Variável | Para quê | Padrão |
+|---|---|---|
+| `ARENAPLUS_COACH_API_KEY` | Chave da IA do Arena Coach (**única chave secreta**) | vazio (Coach desativado) |
+| `ARENAPLUS_COACH_MODEL` / `ARENAPLUS_COACH_BASE_URL` | Modelo e endereço do provedor | `gpt-4o-mini` / `https://api.openai.com/v1` |
+| `ARENAPLUS_UPLOAD_MAX_IMAGEM_MB` | Tamanho máximo de imagem (MB) | `10` |
+| `ARENAPLUS_UPLOAD_MAX_VIDEO_MB` | Tamanho máximo de vídeo (MB) | `50` |
+| `ARENAPLUS_UPLOAD_DIR` | Pasta dos arquivos enviados | `./data/uploads` |
+
+Se você iniciar a API sem o `iniciar.sh` (por exemplo, `./mvnw spring-boot:run`), o `.env` **não** é lido: exporte as variáveis no terminal.
+
 ### Jeito rápido: um comando só
 
 ```bash

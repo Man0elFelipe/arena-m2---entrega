@@ -582,7 +582,7 @@ class ArenaPlusApiIntegrationTest {
         upload(u.token(), "malicioso.jpg", "image/jpeg", "<script>alert(1)</script>".getBytes()).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensagem").value(containsString("Formato não suportado")));
         upload(u.token(), "documento.pdf", "application/pdf", "%PDF-1.4 conteudo".getBytes()).andExpect(status().isBadRequest());
-        upload(u.token(), "filme.mov", "video/quicktime", mp4("qt  ")).andExpect(status().isBadRequest());
+        upload(u.token(), "falso.mov", "video/quicktime", "isto não é um vídeo QuickTime".getBytes()).andExpect(status().isBadRequest());
         upload(u.token(), "vazio.jpg", "image/jpeg", new byte[0]).andExpect(status().isBadRequest());
         upload(u.token(), "grande.jpg", "image/jpeg", jpeg(11 * 1024 * 1024)).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensagem").value(containsString("10 MB")));
@@ -676,5 +676,94 @@ class ArenaPlusApiIntegrationTest {
                 .andExpect(jsonPath("$[0].texto").value("Fechado!"));
         doPost(ana.token(), "/api/conversas/" + conversa + "/mensagens", "{\"texto\":\"   \"}").andExpect(status().isBadRequest());
         doGet(ana.token(), "/api/conversas/987654/mensagens").andExpect(status().isNotFound());
+    }
+
+    // ---------- Vídeos MOV/WebM, limites e capas ----------
+
+    private static byte[] webm() {
+        byte[] b = new byte[512];
+        b[0] = 0x1A; b[1] = 0x45; b[2] = (byte) 0xDF; b[3] = (byte) 0xA3;
+        return b;
+    }
+
+    /** QuickTime antigo, sem átomo "ftyp": o arquivo começa direto em "moov". */
+    private static byte[] movClassico() {
+        byte[] b = new byte[512];
+        b[3] = 0x20;
+        System.arraycopy("moov".getBytes(), 0, b, 4, 4);
+        return b;
+    }
+
+    @Test
+    void uploadAceitaMovQuickTimeEWebmEServeComContentTypeCorreto() throws Exception {
+        U u = novoUsuario("Videos");
+        Object[][] casos = {
+                {"iphone.MOV", "video/quicktime", mp4("qt  "), ".mov", "video/quicktime"},
+                {"antigo.mov", "video/quicktime", movClassico(), ".mov", "video/quicktime"},
+                {"web.webm", "video/webm", webm(), ".webm", "video/webm"},
+                {"tipo-vazio.mov", "", mp4("qt  "), ".mov", "video/quicktime"}, // alguns navegadores não informam o Content-Type
+        };
+        for (Object[] c : casos) {
+            String url = str(upload(u.token(), (String) c[0], (String) c[1], (byte[]) c[2]).andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.tipoMidia").value("VIDEO")).andExpect(jsonPath("$.url").value(endsWith((String) c[3]))), "$.url");
+            mvc.perform(MockMvcRequestBuilders.get(url)).andExpect(status().isOk()).andExpect(content().contentType((String) c[4]));
+        }
+    }
+
+    @Test
+    void limitesDeUploadSaoExpostosParaOFrontend() throws Exception {
+        U u = novoUsuario("Limites");
+        doGet(u.token(), "/api/midias/limites").andExpect(status().isOk())
+                .andExpect(jsonPath("$.imagemMaxMb").value(10)).andExpect(jsonPath("$.videoMaxMb").value(50))
+                .andExpect(jsonPath("$.tiposVideo", hasItems("video/mp4", "video/quicktime", "video/webm")))
+                .andExpect(jsonPath("$.extensoesVideo", hasItems("mov", "webm")));
+        doGet(null, "/api/midias/limites").andExpect(status().isUnauthorized());
+        // vídeo acima do limite de vídeo e imagem acima do limite de imagem têm mensagens próprias
+        upload(u.token(), "grande.mov", "video/quicktime", mp4Grande(51 * 1024 * 1024)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value(containsString("vídeos podem ter no máximo 50 MB")));
+    }
+
+    private static byte[] mp4Grande(int tamanho) {
+        byte[] b = new byte[tamanho];
+        b[3] = 0x18;
+        System.arraycopy("ftyp".getBytes(), 0, b, 4, 4);
+        System.arraycopy("qt  ".getBytes(), 0, b, 8, 4);
+        return b;
+    }
+
+    @Test
+    void capaDeComunidadeEEventoAceitaImagemEnviadaERecusaVideoMidiaAlheiaEUrlPerigosa() throws Exception {
+        U dono = novoUsuario("Capas");
+        U outro = novoUsuario("Outro Capas");
+        String imagem = str(upload(dono.token(), "capa.png", "image/png", png()).andExpect(status().isCreated()), "$.url");
+        String video = str(upload(dono.token(), "v.mp4", "video/mp4", mp4("isom")).andExpect(status().isCreated()), "$.url");
+
+        String corpo = "{\"nome\":\"Com Capa\",\"descricao\":\"d\",\"esporte\":\"Corrida\",\"imagemUrl\":\"%s\"}";
+        doPost(dono.token(), "/api/comunidades", corpo.formatted(imagem)).andExpect(status().isCreated()).andExpect(jsonPath("$.imagemUrl").value(imagem));
+        doPost(dono.token(), "/api/comunidades", corpo.formatted(video)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value(containsString("imagem")));
+        doPost(outro.token(), "/api/comunidades", corpo.formatted(imagem)).andExpect(status().isBadRequest()); // mídia de outro usuário
+        doPost(dono.token(), "/api/comunidades", corpo.formatted("javascript:alert(1)")).andExpect(status().isBadRequest());
+        doPost(dono.token(), "/api/comunidades", corpo.formatted("https://exemplo.com/capa.jpg")).andExpect(status().isCreated());
+        doPost(dono.token(), "/api/comunidades", corpo.formatted("img/futebol.jpeg")).andExpect(status().isCreated());
+        doPost(dono.token(), "/api/comunidades", corpo.formatted("")).andExpect(status().isCreated()).andExpect(jsonPath("$.imagemUrl").doesNotExist());
+
+        String evento = "{\"modalidade\":\"Futebol\",\"titulo\":\"Fut dos crias\",\"descricao\":\"Racha de sábado\",\"cidade\":\"Mauá\",\"local\":\"Quadra\","
+                + "\"dataHora\":\"2031-01-10T10:00:00\",\"vagasMaximas\":10,\"imagemUrl\":\"%s\"}";
+        long id = id(doPost(dono.token(), "/api/eventos", evento.formatted(imagem)).andExpect(status().isCreated()).andExpect(jsonPath("$.imagemUrl").value(imagem)));
+        doGet(outro.token(), "/api/eventos/" + id).andExpect(jsonPath("$.imagemUrl").value(imagem));
+        doPost(dono.token(), "/api/eventos", evento.formatted(video)).andExpect(status().isBadRequest());
+        doPost(dono.token(), "/api/eventos", evento.formatted(imagem).replace(",\"imagemUrl\":\"" + imagem + "\"", "")).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.imagemUrl").doesNotExist()); // capa é opcional
+    }
+
+    @Test
+    void excluirPublicacaoNaoApagaArquivoQueTambemEhCapa() throws Exception {
+        U u = novoUsuario("Reuso");
+        String imagem = str(upload(u.token(), "capa.jpg", "image/jpeg", jpeg(2000)).andExpect(status().isCreated()), "$.url");
+        doPost(u.token(), "/api/comunidades", "{\"nome\":\"Reuso\",\"descricao\":\"d\",\"esporte\":\"x\",\"imagemUrl\":\"%s\"}".formatted(imagem)).andExpect(status().isCreated());
+        long pub = id(doPost(u.token(), "/api/publicacoes", "{\"texto\":\"mesma imagem\",\"midiaUrl\":\"%s\"}".formatted(imagem)).andExpect(status().isCreated()));
+        doDelete(u.token(), "/api/publicacoes/" + pub).andExpect(status().isNoContent());
+        mvc.perform(MockMvcRequestBuilders.get(imagem)).andExpect(status().isOk()); // ainda é a capa da comunidade
     }
 }

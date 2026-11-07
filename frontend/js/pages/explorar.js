@@ -2,7 +2,7 @@
 // Todos os resultados vêm da API (sem dados fictícios).
 (function () {
   const eu = window.Sessao.exigir();
-  const { esc, carregando, vazio, falha, toast, erro, comCarregamento } = window.UI;
+  const { esc, avatar, carregando, vazio, falha, toast, erro, comCarregamento } = window.UI;
   window.UI.montarHeader('explorar');
 
   const form = document.getElementById('filtros');
@@ -52,15 +52,141 @@
     },
   };
 
-  function eventoHtml(e) { return `<article class="card evento-card"><div class="evento-topo"><span class="tag">${esc(e.modalidade)}</span><span class="tag">${esc(e.estado)}</span></div><h2>${esc(e.titulo)}</h2><p>${esc(e.descricao)}</p><p><strong>${esc(e.cidade)}</strong> · ${esc(e.local)}</p><p>${esc(new Date(e.dataHora).toLocaleString('pt-BR',{dateStyle:'medium',timeStyle:'short'}))}</p><p>${e.participantes} / ${e.vagasMaximas} vagas · organizado por ${esc(e.organizador)}</p><div class="evento-acoes"><button class="btn btn-secundario btn-pequeno" data-evento-detalhe="${e.id}">Ver participantes</button>${e.estado==='ABERTO'?`<button class="btn ${e.participando?'btn-secundario':'btn-primario'} btn-pequeno" data-evento-participar="${e.id}" data-participa="${e.participando}">${e.participando?'Cancelar inscrição':'Participar'}</button>`:''}${e.organizadorId===eu.id&&e.estado==='ABERTO'?`<button class="btn btn-secundario btn-pequeno" data-evento-encerrar="${e.id}">Encerrar</button><button class="btn btn-secundario btn-pequeno" data-evento-cancelar="${e.id}">Cancelar evento</button>`:''}</div></article>`; }
+  // ---------- Eventos ----------
+  const ESTADOS = { ABERTO: ['Aberto', 'aberto'], ENCERRADO: ['Encerrado', 'encerrado'], CANCELADO: ['Cancelado', 'cancelado'] };
+  const ICONES = [
+    [/futeb|futsal|society/i, 'fa-futbol'], [/v[oô]lei/i, 'fa-volleyball'], [/basquet/i, 'fa-basketball'],
+    [/corrida|maratona|run/i, 'fa-person-running'], [/t[eê]nis|padel|beach/i, 'fa-table-tennis-paddle-ball'],
+    [/muscula|academia|funcional|crossfit|treino/i, 'fa-dumbbell'], [/nata[cç]|aqu[aá]tic/i, 'fa-person-swimming'],
+    [/cicl|bike|bicicleta/i, 'fa-person-biking'], [/boxe|luta|jiu|muay|karat|judo|capoeira/i, 'fa-hand-fist'],
+    [/yoga|pilates|alongamento/i, 'fa-spa'],
+  ];
+  // Capa sem imagem: degradê da paleta da Arena+ (a cor varia com a modalidade) + ícone do esporte.
+  const PALETAS = [['#1e3a8a', '#1d4ed8'], ['#1d4ed8', '#f97316'], ['#334155', '#1d4ed8'], ['#9a3412', '#f97316'], ['#0f766e', '#1d4ed8']];
 
-  function abrirCriacaoEvento() {
-    const {dlg,fechar}=window.UI.dialogoTemporario(`<form id="form-evento" class="form-dialogo"><h2>Criar evento</h2><label class="campo"><span>Modalidade *</span><input name="modalidade" required maxlength="80"></label><label class="campo"><span>Título *</span><input name="titulo" required maxlength="120"></label><label class="campo"><span>Descrição *</span><textarea name="descricao" required maxlength="1500"></textarea></label><div class="linha-campos"><label class="campo"><span>Cidade *</span><input name="cidade" required maxlength="100"></label><label class="campo"><span>Local *</span><input name="local" required maxlength="160"></label></div><label class="campo"><span>Data e hora *</span><input name="dataHora" type="datetime-local" required></label><label class="campo"><span>Vagas (2 a 500) *</span><input name="vagasMaximas" type="number" min="2" max="500" value="10" required></label><div class="dialogo-acoes"><button type="button" class="btn btn-secundario" data-cancelar>Cancelar</button><button class="btn btn-primario">Criar evento</button></div></form>`);
-    dlg.querySelector('[data-cancelar]').onclick=fechar;
-    dlg.querySelector('form').addEventListener('submit',async ev=>{ev.preventDefault();const f=new FormData(ev.currentTarget),dados=Object.fromEntries(f);dados.vagasMaximas=Number(dados.vagasMaximas);try{await window.Api.eventos.criar(dados);fechar();toast('Evento criado.');await buscar(true);}catch(e){erro(e);}});
+  function iconeDoEsporte(modalidade) {
+    const achado = ICONES.find(([rx]) => rx.test(modalidade || ''));
+    return achado ? achado[1] : 'fa-trophy';
+  }
+  function paletaDoEsporte(modalidade) {
+    let h = 0;
+    for (const ch of String(modalidade || '').toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return PALETAS[h % PALETAS.length];
+  }
+  function quando(iso) {
+    const d = new Date(iso);
+    const opcoes = { weekday: 'short', day: 'numeric', month: 'short' };
+    if (d.getFullYear() !== new Date().getFullYear()) opcoes.year = 'numeric';
+    return `${d.toLocaleDateString('pt-BR', opcoes)} · ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
   }
 
-  async function detalheEvento(id){try{const [e,pessoas]=await Promise.all([window.Api.eventos.buscar(id),window.Api.eventos.participantes(id)]);const lista=pessoas.length?pessoas.map(p=>`<li>${esc(p.nome)} · ${esc(p.esportePrincipal||'Atleta')}</li>`).join(''):'<li>Ninguém inscrito ainda.</li>';const {dlg,fechar}=window.UI.dialogoTemporario(`<section><h2>${esc(e.titulo)}</h2><p>${esc(e.descricao)}</p><p>${esc(e.cidade)} · ${esc(e.local)}</p><h3>Participantes (${pessoas.length}/${e.vagasMaximas})</h3><ul>${lista}</ul><div class="dialogo-acoes"><button class="btn btn-primario" data-fechar>Fechar</button></div></section>`);dlg.querySelector('[data-fechar]').onclick=fechar;}catch(e){erro(e);}}
+  function capaEventoHtml(e) {
+    const [corA, corB] = paletaDoEsporte(e.modalidade);
+    const [rotuloEstado, classeEstado] = ESTADOS[e.estado] || [e.estado, 'encerrado'];
+    const imagem = window.UI.urlSegura(e.imagemUrl);
+    return `<div class="evento-capa ${imagem ? '' : 'sem-imagem'}" style="--capa-a:${corA};--capa-b:${corB}">
+        ${imagem ? `<img src="${esc(imagem)}" alt="" loading="lazy" onerror="this.parentElement.classList.add('sem-imagem');this.remove()">` : ''}
+        <i class="fa-solid ${iconeDoEsporte(e.modalidade)} evento-capa-icone" aria-hidden="true"></i>
+        <div class="evento-badges">
+          <span class="pill pill-esporte">${esc(e.modalidade)}</span>
+          <span class="pill pill-estado pill-${classeEstado}">${esc(rotuloEstado)}</span>
+        </div>
+      </div>`;
+  }
+
+  function eventoHtml(e) {
+    const lotado = e.participantes >= e.vagasMaximas;
+    const pct = Math.min(100, Math.round((e.participantes / Math.max(1, e.vagasMaximas)) * 100));
+    const aberto = e.estado === 'ABERTO';
+    const organizador = e.organizadorId === eu.id;
+    return `<article class="card evento-card" data-evento="${e.id}">
+      ${capaEventoHtml(e)}
+      <div class="evento-corpo">
+        <h3 class="evento-titulo">${esc(e.titulo)}</h3>
+        <p class="evento-desc">${esc(e.descricao)}</p>
+        <ul class="evento-infos">
+          <li><i class="fa-solid fa-location-dot" aria-hidden="true"></i><span><strong>${esc(e.local)}</strong><small>${esc(e.cidade)}</small></span></li>
+          <li><i class="fa-regular fa-calendar" aria-hidden="true"></i><span>${esc(quando(e.dataHora))}</span></li>
+          <li><i class="fa-solid fa-user-group" aria-hidden="true"></i>
+            <span class="evento-vagas"><span class="vagas-texto">${lotado ? '<b>Lotado</b> · ' : ''}${e.participantes}/${e.vagasMaximas} vagas</span>
+              <span class="vagas-barra ${lotado ? 'cheia' : ''}" role="progressbar" aria-valuemin="0" aria-valuemax="${e.vagasMaximas}" aria-valuenow="${e.participantes}" aria-label="Vagas preenchidas"><span style="width:${pct}%"></span></span></span></li>
+          <li><i class="fa-regular fa-user" aria-hidden="true"></i><span>Organizado por <a href="perfil.html?id=${e.organizadorId}">${esc(e.organizador)}</a></span></li>
+        </ul>
+      </div>
+      <footer class="evento-rodape">
+        <button class="btn btn-secundario btn-pequeno" data-evento-detalhe="${e.id}"><i class="fa-solid fa-users" aria-hidden="true"></i> Ver participantes</button>
+        ${aberto ? `<button class="btn ${e.participando ? 'btn-secundario' : 'btn-primario'} btn-pequeno" data-evento-participar="${e.id}" data-participa="${e.participando}" ${lotado && !e.participando ? 'disabled title="Evento lotado"' : ''}>
+          ${e.participando ? '<i class="fa-solid fa-check"></i> Inscrito · cancelar' : '<i class="fa-solid fa-plus"></i> Participar'}</button>` : ''}
+        ${organizador && aberto ? `<span class="evento-gestao">
+          <button class="btn-link" data-evento-encerrar="${e.id}">Encerrar</button>
+          <button class="btn-link perigo" data-evento-cancelar="${e.id}">Cancelar evento</button></span>` : ''}
+      </footer>
+    </article>`;
+  }
+
+  function abrirCriacaoEvento() {
+    const { dlg, fechar } = window.UI.dialogoTemporario(`
+      <form id="form-evento" class="form-dialogo" novalidate>
+        <h3>Criar evento</h3>
+        <label class="campo"><span>Modalidade *</span><input name="modalidade" required maxlength="80" placeholder="Ex.: Futebol"></label>
+        <label class="campo"><span>Título *</span><input name="titulo" required maxlength="120" placeholder="Ex.: Racha de sábado"></label>
+        <label class="campo"><span>Descrição *</span><textarea name="descricao" required maxlength="1500" rows="3"></textarea></label>
+        <div class="linha-campos">
+          <label class="campo"><span>Cidade *</span><input name="cidade" required maxlength="100"></label>
+          <label class="campo"><span>Local *</span><input name="local" required maxlength="160" placeholder="Ex.: Quadra do parque"></label>
+        </div>
+        <div class="linha-campos">
+          <label class="campo"><span>Data e hora *</span><input name="dataHora" type="datetime-local" required></label>
+          <label class="campo"><span>Vagas (2 a 500) *</span><input name="vagasMaximas" type="number" min="2" max="500" value="10" required></label>
+        </div>
+        <div class="campo" id="seletor-capa-evento"></div>
+        <div class="dialogo-acoes">
+          <button type="button" class="btn btn-secundario" data-cancelar>Cancelar</button>
+          <button class="btn btn-primario" data-carregando="Criando">Criar evento</button>
+        </div>
+      </form>`);
+    const seletor = window.Upload.seletorImagem(dlg.querySelector('#seletor-capa-evento'), { rotulo: 'Imagem de capa (opcional)' });
+    dlg.querySelector('[data-cancelar]').addEventListener('click', fechar);
+    dlg.addEventListener('cancel', (ev) => { ev.preventDefault(); fechar(); });
+    dlg.querySelector('form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const f = ev.currentTarget.elements;
+      const dados = {
+        modalidade: f.modalidade.value.trim(), titulo: f.titulo.value.trim(), descricao: f.descricao.value.trim(),
+        cidade: f.cidade.value.trim(), local: f.local.value.trim(), dataHora: f.dataHora.value, vagasMaximas: Number(f.vagasMaximas.value),
+      };
+      if (!dados.modalidade || !dados.titulo || !dados.descricao || !dados.cidade || !dados.local || !dados.dataHora) {
+        return toast('Preencha todos os campos obrigatórios.', 'erro');
+      }
+      await comCarregamento(ev.currentTarget.querySelector('.btn-primario'), async () => {
+        try {
+          dados.imagemUrl = await seletor.resolver(); // arquivo (com progresso) ou link
+          await window.Api.eventos.criar(dados);
+          fechar();
+          toast('Evento criado!');
+          await buscar(true);
+        } catch (e) { erro(e); }
+      });
+    });
+  }
+
+  async function detalheEvento(id) {
+    try {
+      const [e, pessoas] = await Promise.all([window.Api.eventos.buscar(id), window.Api.eventos.participantes(id)]);
+      const lista = pessoas.length
+        ? pessoas.map((p) => `<li><a href="perfil.html?id=${p.id}">${avatar(p, 'sm')}<span><strong>${esc(p.nome)}</strong><small>${esc(p.esportePrincipal || 'Atleta')}</small></span></a></li>`).join('')
+        : '<li class="sem-comentarios">Ninguém inscrito ainda.</li>';
+      const { dlg, fechar } = window.UI.dialogoTemporario(`<section class="evento-detalhe">
+        <h3>${esc(e.titulo)}</h3>
+        <p class="evento-desc-completa">${esc(e.descricao)}</p>
+        <p class="evento-detalhe-meta"><i class="fa-solid fa-location-dot"></i> ${esc(e.local)}, ${esc(e.cidade)} · <i class="fa-regular fa-calendar"></i> ${esc(quando(e.dataHora))}</p>
+        <h4>Participantes (${pessoas.length}/${e.vagasMaximas})</h4>
+        <ul class="lista-participantes">${lista}</ul>
+        <div class="dialogo-acoes"><button class="btn btn-primario" data-fechar>Fechar</button></div></section>`);
+      dlg.querySelector('[data-fechar]').addEventListener('click', fechar);
+      dlg.addEventListener('cancel', (ev) => { ev.preventDefault(); fechar(); });
+    } catch (e) { erro(e); }
+  }
 
   async function carregarRelacoes() {
     try {

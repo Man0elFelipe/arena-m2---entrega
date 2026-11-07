@@ -66,15 +66,17 @@
   // ---------- Criar ----------
   const dlg = document.getElementById('dlg-criar');
   const form = document.getElementById('form-criar');
-  document.getElementById('btn-criar').addEventListener('click', () => { form.reset(); dlg.showModal(); });
+  const seletorCapa = window.Upload.seletorImagem(document.getElementById('seletor-capa'), { rotulo: 'Imagem de capa' });
+  document.getElementById('btn-criar').addEventListener('click', () => { form.reset(); seletorCapa.limpar(); dlg.showModal(); });
   document.getElementById('btn-cancelar').addEventListener('click', () => dlg.close());
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const f = form.elements;
-    const dados = { nome: f.nome.value.trim(), esporte: f.esporte.value.trim(), descricao: f.descricao.value.trim(), imagemUrl: f.imagemUrl.value.trim() || null };
+    const dados = { nome: f.nome.value.trim(), esporte: f.esporte.value.trim(), descricao: f.descricao.value.trim() };
     if (!dados.nome || !dados.esporte || !dados.descricao) return toast('Preencha nome, esporte e descrição.', 'erro');
     await comCarregamento(form.querySelector('.btn-primario'), async () => {
       try {
+        dados.imagemUrl = await seletorCapa.resolver(); // envia o arquivo (com progresso) ou usa o link colado
         const c = await window.Api.comunidades.criar(dados);
         dlg.close();
         toast('Comunidade criada! Você é o moderador.');

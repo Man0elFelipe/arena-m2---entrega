@@ -9,6 +9,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface ComunidadeRepository extends JpaRepository<Comunidade, Long> {
 
+    boolean existsByImagemUrl(String imagemUrl);
+
     @Query("""
             select c from Comunidade c
             where (:esporte is null or lower(function('TRANSLATE', c.esporte, :#{T(br.fatec.arenaplus.repository.Busca).COM_ACENTO}, :#{T(br.fatec.arenaplus.repository.Busca).SEM_ACENTO})) = :esporte)

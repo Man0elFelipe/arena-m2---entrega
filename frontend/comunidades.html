@@ -33,9 +33,8 @@
         <label class="campo"><span>Nome *</span><input name="nome" required maxlength="100" placeholder="Ex.: Corredores da Zona Leste"></label>
         <label class="campo"><span>Esporte *</span><input name="esporte" required maxlength="60" list="esportes" placeholder="Ex.: Corrida"></label>
         <label class="campo"><span>Descrição *</span><textarea name="descricao" rows="3" required maxlength="1000" placeholder="Qual é o objetivo do grupo?"></textarea></label>
-        <label class="campo"><span>URL da imagem de capa</span><input name="imagemUrl" maxlength="500" list="capas" placeholder="img/futebol.jpeg ou https://..."></label>
+        <div class="campo" id="seletor-capa"></div>
         <datalist id="esportes"><option>Futebol</option><option>Vôlei</option><option>Basquete</option><option>Corrida</option><option>Musculação</option><option>Tênis</option><option>Capoeira</option><option>Boxe</option><option>Ginástica</option></datalist>
-        <datalist id="capas"><option value="img/futebol.jpeg"><option value="img/volei.jpeg"><option value="img/basquete.jpeg"><option value="img/academia.jpeg"><option value="img/boxe.jpeg"><option value="img/ginastica.jpeg"><option value="img/capoeira.webp"><option value="img/tenis.jpeg"></datalist>
         <div class="dialogo-acoes">
             <button type="button" class="btn btn-secundario" id="btn-cancelar">Cancelar</button>
             <button class="btn btn-primario" data-carregando="Criando">Criar</button>
@@ -46,6 +45,7 @@
 <script src="js/session.js"></script>
 <script src="js/api.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/upload.js"></script>
 <script src="js/components.js"></script>
 <script src="js/coach.js"></script>
 <script src="js/efeitos.js"></script>

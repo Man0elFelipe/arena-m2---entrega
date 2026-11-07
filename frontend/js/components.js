@@ -2,9 +2,6 @@
 (function () {
   const { esc, avatar, tempoRelativo, dataCompleta, urlSegura, toast, erro, comCarregamento, confirmar } = window.UI;
 
-  const TIPOS_ACEITOS = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
-  const LIMITE_IMAGEM = 10 * 1024 * 1024;
-  const LIMITE_VIDEO = 50 * 1024 * 1024;
 
   // ---------- Publicação ----------
   function midiaHtml(p) {
@@ -284,27 +281,12 @@
   }
 
   // ---------- Diálogo de publicar (com upload) ----------
-  function formatarTamanho(bytes) {
-    return bytes > 1024 * 1024 ? (bytes / 1024 / 1024).toFixed(1) + ' MB' : Math.max(1, Math.round(bytes / 1024)) + ' KB';
-  }
-
-  /** Valida no navegador (o servidor valida de novo pelo conteúdo). Devolve uma mensagem de erro ou null. */
-  function validarArquivo(arquivo) {
-    if (!TIPOS_ACEITOS.includes(arquivo.type)) {
-      return 'Formato não suportado. Use imagens JPEG, PNG ou WebP, ou vídeos MP4.';
-    }
-    const limite = arquivo.type === 'video/mp4' ? LIMITE_VIDEO : LIMITE_IMAGEM;
-    if (arquivo.size > limite) {
-      return `Arquivo grande demais (${formatarTamanho(arquivo.size)}). Limite: ${limite / 1024 / 1024} MB para ${arquivo.type === 'video/mp4' ? 'vídeos' : 'imagens'}.`;
-    }
-    return null;
-  }
-
   async function abrirPublicar(opcoes = {}) {
     const eu = window.Sessao.usuario();
     if (!eu) return;
     let minhas = [];
     try { minhas = await window.Api.membros.doUsuario(eu.id); } catch (e) { /* publica no feed geral mesmo sem a lista */ }
+    await window.Upload.carregarLimites(); // limites e formatos vêm da configuração do servidor
     const { dlg, fechar } = window.UI.dialogoTemporario(`
       <form id="form-publicar-dlg" novalidate>
         <h3>Nova publicação</h3>
@@ -319,9 +301,9 @@
             ${minhas.map((m) => `<option value="${m.comunidadeId}" ${Number(opcoes.comunidadeId) === m.comunidadeId ? 'selected' : ''}>👥 ${esc(m.comunidadeNome)}</option>`).join('')}
           </select></label>
         <div class="upload-area">
-          <input type="file" name="arquivo" id="pub-arquivo" accept="image/jpeg,image/png,image/webp,video/mp4" hidden>
+          <input type="file" name="arquivo" id="pub-arquivo" accept="${window.Upload.aceitarMidia()}" hidden>
           <button type="button" class="btn btn-secundario btn-pequeno" id="pub-escolher"><i class="fa-regular fa-image" aria-hidden="true"></i> Adicionar foto ou vídeo</button>
-          <small>JPEG, PNG, WebP (até 10 MB) · MP4 (até 50 MB) · uma mídia por publicação</small>
+          <small>Imagens JPG, PNG, WebP (até ${window.Upload.limites().imagemMaxMb} MB) · vídeos MP4, MOV, WebM (até ${window.Upload.limites().videoMaxMb} MB) · uma mídia por publicação</small>
         </div>
         <div class="preview-midia" id="pub-preview" hidden></div>
         <div class="progresso" id="pub-progresso" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -360,7 +342,7 @@
       mostrarErro('');
       const f = entrada.files[0];
       if (!f) return;
-      const problema = validarArquivo(f);
+      const problema = window.Upload.validar(f);
       if (problema) {
         limparPreview();
         return mostrarErro(problema);
@@ -369,12 +351,18 @@
       arquivo = f;
       urlPreview = URL.createObjectURL(f);
       preview.hidden = false;
-      preview.innerHTML = `${f.type === 'video/mp4'
-        ? `<video src="${urlPreview}" controls preload="metadata" playsinline aria-label="Pré-visualização do vídeo"></video>`
+      const ehVideo = window.Upload.classificar(f) === 'video';
+      preview.innerHTML = `${ehVideo
+        ? `<video src="${urlPreview}" controls preload="metadata" playsinline aria-label="Pré-visualização do vídeo"></video>
+           <p class="preview-sem-codec" hidden>Seu navegador não consegue exibir a prévia deste vídeo, mas o envio funciona normalmente.</p>`
         : `<img src="${urlPreview}" alt="Pré-visualização da imagem">`}
-        <div class="preview-info"><span>${esc(f.name)} · ${formatarTamanho(f.size)}</span>
+        <div class="preview-info"><span>${esc(f.name)} · ${window.Upload.formatarTamanho(f.size)}</span>
         <button type="button" class="btn-icone btn-mini" id="pub-remover" aria-label="Remover mídia"><i class="fa-solid fa-xmark"></i></button></div>`;
       preview.querySelector('#pub-remover').addEventListener('click', limparPreview);
+      preview.querySelector('video')?.addEventListener('error', (ev) => { // ex.: vídeo HEVC do iPhone em navegador sem esse codec
+        ev.target.hidden = true;
+        preview.querySelector('.preview-sem-codec').hidden = false;
+      });
     });
     dlg.querySelector('#pub-cancelar').addEventListener('click', () => { if (!enviando) fecharTudo(); });
     dlg.addEventListener('cancel', (ev) => { ev.preventDefault(); if (!enviando) fecharTudo(); });

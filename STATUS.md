@@ -1,3 +1,32 @@
+# STATUS — Arena+ 2.2c (card de evento, capas com upload, vídeo MOV, variáveis de ambiente)
+
+> **Última atualização:** 07/11/2026. Branch `arena-2.2`.
+
+## 2.2c — O que mudou e como foi verificado
+
+| Item | Situação | Verificação |
+|---|---|---|
+| Card de evento refeito (capa/fallback, badges, ícones, barra de vagas, rodapé, reto, responsivo) | ✅ | Navegador desktop e 375 px; `transform: none` em repouso |
+| Criar comunidade e evento com **imagem** (arquivo + prévia + link, validação, upload) | ✅ | Navegador: PDF/GIF/vídeo/11 MB recusados com mensagem clara; criação com imagem; edição mostra a capa atual |
+| Upload de **.MOV** (e WebM) | ✅ Causa: rejeição explícita no backend e no front | Reproduzido com um `.mov` QuickTime real (`avconvert`): 400 antes, 201 depois; 4,3 MB também; toca no navegador |
+| Limites por variável de ambiente | ✅ | `ARENAPLUS_UPLOAD_MAX_VIDEO_MB=3`: API recusa 4,3 MB e aceita 2,9 MB; a interface mostra o limite real |
+| Erro legível e progresso no upload | ✅ | API derrubada no meio do envio: mensagem visível, diálogo aberto e botões reabilitados |
+| `.env`, `.env.example`, `.gitignore`; `iniciar.sh` ignora valores vazios | ✅ | Parser testado com arquivo falso |
+
+## 2.2c — Testes realmente executados
+
+- `./mvnw test`: **65 testes, 0 falhas** (novos: MOV/WebM, limites, capas, reaproveitamento de arquivo).
+- `scripts/smoke-test-api.sh` (instância isolada): **79 ok, 0 falhas** (inclui `.MOV` e `/api/midias/limites`).
+
+## 2.2c — Limitações
+
+- Vídeos HEVC do iPhone: o envio funciona, mas navegadores sem esse codec não reproduzem (não há transcodificação no servidor).
+- Fotos `.heic` do iPhone **não** são aceitas (só JPG, PNG e WebP).
+- Em painel de navegador oculto as transições CSS ficam congeladas; os estados finais foram conferidos finalizando as animações por script.
+- O progresso aparece como 100% em envios locais muito rápidos (o valor intermediário não chega a ser amostrado).
+
+---
+
 # STATUS — Arena+ 2.2 (continuação: Coach, Swagger limpo e visual premium)
 
 > **Última atualização:** 07/11/2026. Branch `arena-2.2`. Entrega: **segunda, 09/11/2026**.

@@ -1,5 +1,6 @@
 package br.fatec.arenaplus.controller;
 
+import br.fatec.arenaplus.dto.MidiaLimitesResponse;
 import br.fatec.arenaplus.dto.MidiaResponse;
 import br.fatec.arenaplus.security.UsuarioAutenticado;
 import br.fatec.arenaplus.service.MidiaService;
@@ -15,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/midias")
-@Tag(name = "8. Mídias", description = "Upload de imagens (JPEG, PNG, WebP até 10 MB) e vídeos (MP4 até 50 MB)")
+@Tag(name = "8. Mídias", description = "Upload de imagens (JPEG, PNG, WebP) e vídeos (MP4, MOV, WebM). Os limites de tamanho são configuráveis (ARENAPLUS_UPLOAD_MAX_*_MB).")
 public class MidiaController {
 
     private final MidiaService service;
@@ -24,6 +25,12 @@ public class MidiaController {
     public MidiaController(MidiaService service, UsuarioService usuarioService) {
         this.service = service;
         this.usuarioService = usuarioService;
+    }
+
+    @GetMapping("/limites")
+    @Operation(summary = "Limites e formatos aceitos no upload", description = "Tamanhos máximos (MB) e tipos aceitos, vindos da configuração do servidor.")
+    public MidiaLimitesResponse limites() {
+        return service.limites();
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

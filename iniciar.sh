@@ -73,7 +73,7 @@ carregar_env() {
     valor="${valor#"${valor%%[![:space:]]*}"}"; valor="${valor%"${valor##*[![:space:]]}"}"   # apara espaços
     [[ "$chave" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
     if [[ "$valor" =~ ^\"(.*)\"$ ]] || [[ "$valor" =~ ^\'(.*)\'$ ]]; then valor="${BASH_REMATCH[1]}"; fi
-    [ -z "${!chave+x}" ] && export "$chave=$valor"
+    [ -n "$valor" ] && [ -z "${!chave+x}" ] && export "$chave=$valor"   # vazio é ignorado: valem os padrões
   done < "$arquivo"
   return 0
 }

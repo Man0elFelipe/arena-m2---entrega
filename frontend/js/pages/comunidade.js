@@ -138,18 +138,21 @@
   // ---------- Moderação ----------
   const dlg = document.getElementById('dlg-editar');
   const formEditar = document.getElementById('form-editar');
+  const seletorCapa = window.Upload.seletorImagem(document.getElementById('seletor-capa'), { rotulo: 'Imagem de capa' });
   function abrirEdicao() {
-    ['nome', 'esporte', 'descricao', 'imagemUrl'].forEach((c) => { formEditar.elements[c].value = comunidade[c] || ''; });
+    ['nome', 'esporte', 'descricao'].forEach((c) => { formEditar.elements[c].value = comunidade[c] || ''; });
+    seletorCapa.definir(comunidade.imagemUrl);
     dlg.showModal();
   }
   document.getElementById('btn-cancelar').addEventListener('click', () => dlg.close());
   formEditar.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const f = formEditar.elements;
-    const dados = { nome: f.nome.value.trim(), esporte: f.esporte.value.trim(), descricao: f.descricao.value.trim(), imagemUrl: f.imagemUrl.value.trim() || null };
+    const dados = { nome: f.nome.value.trim(), esporte: f.esporte.value.trim(), descricao: f.descricao.value.trim() };
     if (!dados.nome || !dados.esporte || !dados.descricao) return toast('Preencha nome, esporte e descrição.', 'erro');
     await comCarregamento(formEditar.querySelector('.btn-primario'), async () => {
       try {
+        dados.imagemUrl = await seletorCapa.resolver();
         await window.Api.comunidades.atualizar(id, dados);
         dlg.close();
         toast('Comunidade atualizada.');

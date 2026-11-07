@@ -28,6 +28,15 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    private final long limiteImagemMb;
+    private final long limiteVideoMb;
+
+    public GlobalExceptionHandler(@org.springframework.beans.factory.annotation.Value("${arenaplus.upload.max-imagem-mb:10}") long limiteImagemMb,
+                                  @org.springframework.beans.factory.annotation.Value("${arenaplus.upload.max-video-mb:50}") long limiteVideoMb) {
+        this.limiteImagemMb = limiteImagemMb;
+        this.limiteVideoMb = limiteVideoMb;
+    }
+
     @ExceptionHandler(RecursoNaoEncontradoException.class)
     public ResponseEntity<ErroResponse> naoEncontrado(RecursoNaoEncontradoException ex, HttpServletRequest req) {
         return erro(HttpStatus.NOT_FOUND, ex.getMessage(), req, null);
@@ -75,7 +84,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErroResponse> uploadGrande(MaxUploadSizeExceededException ex, HttpServletRequest req) {
-        return erro(HttpStatus.PAYLOAD_TOO_LARGE, "Arquivo grande demais. Limite: imagens até 10 MB e vídeos até 50 MB.", req, null);
+        return erro(HttpStatus.PAYLOAD_TOO_LARGE, "Arquivo grande demais. Limites: imagens até " + limiteImagemMb + " MB e vídeos até " + limiteVideoMb + " MB.", req, null);
     }
 
     @ExceptionHandler({MissingServletRequestPartException.class, MultipartException.class})

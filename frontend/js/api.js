@@ -79,6 +79,7 @@
       };
       xhr.onerror = () => reject(new ApiError(0, 'Falha de conexão durante o envio. Verifique a API e tente novamente.'));
       xhr.ontimeout = () => reject(new ApiError(0, 'O envio demorou demais. Tente novamente.'));
+      xhr.onabort = () => reject(new ApiError(0, 'O envio foi cancelado.'));
       xhr.onload = () => {
         let data = null;
         try { data = JSON.parse(xhr.responseText); } catch (e) { data = null; }
@@ -110,7 +111,7 @@
       desativar: (id) => del('/usuarios/' + id),
       alterarSenha: (id, senhaAtual, novaSenha) => patch('/usuarios/' + id + '/senha', { senhaAtual, novaSenha }),
     },
-    midias: { enviar: enviarMidia },
+    midias: { enviar: enviarMidia, limites: () => get('/midias/limites') },
     publicacoes: {
       criar: (dados) => post('/publicacoes', dados),
       listar: (params) => get('/publicacoes', params),
