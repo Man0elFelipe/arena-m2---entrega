@@ -1,15 +1,4 @@
 #!/bin/bash
-# =============================================================================
-#  Arena+ 2.0 — inicializador único (macOS)
-#  Sobe a API Java (porta 8080) e o frontend (porta 3000) num só terminal.
-#
-#  Uso:
-#    ./iniciar.sh            inicia tudo e abre o navegador
-#    ./iniciar.sh --limpo    apaga o banco H2 antes (dados de demonstração recriados)
-#    ./iniciar.sh --sem-navegador
-#
-#  Ctrl+C encerra a API e o frontend juntos.
-# =============================================================================
 
 set -u
 RAIZ="$(cd "$(dirname "$0")" && pwd)"
